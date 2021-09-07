@@ -1,8 +1,46 @@
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+container {
+  height: 500px;
+  display: grid;
 }
+
+.box {
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  margin: 5px
+}
+
+.a {
+  background-color: red;
+  grid-area: 1 / 1/  10/  4;
+}
+
+.b {
+  background-color: blue;
+  grid-area: 1 / 4/ 4/  10;
+}
+
+.c {
+  background-color: aqua;
+  grid-area: 4 / 4/ 10/ 6;
+
+}
+
+.d {
+  background-color: blueviolet;
+  grid-area: 4 / 6/ 6/ 10;
+
+}
+.e {
+  background-color: chartreuse;
+  grid-area: 6 / 6/ 10/  7;
+
+}
+.f {
+  background-color: darkorange;
+  grid-area: 6 / 7/ 8/ 10;
+
+}
+
