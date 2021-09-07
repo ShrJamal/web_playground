@@ -4,11 +4,27 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vanilla Playground</title>
+    <title>Flexbox</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div id="app"></div>
-
-    <script type="module" src="/src/main.ts"></script>
+    <div class="container row">
+      <div class="a box">A</div>
+      <div class="column">
+        <div class="b box">B</div>
+        <div class="row">
+          <div class="c box">C</div>
+          <div class="column">
+            <div class="d box">D</div>
+            <div class="row">
+              <div class="e box">E</div>
+              <div class="column">
+                <div class="f box">F</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
