@@ -1,6 +1,0 @@
-static/**
-build/**
-node_modules/**
-.nuxt/**
-.next/**
-.git/**
