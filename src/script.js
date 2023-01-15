@@ -5,6 +5,10 @@ const projects = [
     name: "Grandma' Sweets",
     path: '/grandma-sweets/index.html',
   },
+  {
+    name: 'Form Validator',
+    path: '/form-validator/index.html',
+  },
 ]
 
 const projectDiv = document.querySelector('.projects')

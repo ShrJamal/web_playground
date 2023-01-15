@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@1,300&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+.container {
+  font-family: 'Open Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.heading {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  margin-bottom: 2rem;
+}
+
+#form {
+  width: 25rem;
+  padding: 2rem 3rem;
+  box-shadow: 2px;
+  border-radius: 1rem;
+  background-color: rgb(255, 255, 255, 0.1);
+}
+.form-control {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  & label {
+    font-size: 1rem;
+    font-weight: bold;
+  }
+
+  & input {
+    padding: 0.5rem;
+    height: 2.5rem;
+    background-color: transparent;
+    border: 0.15px solid gray;
+    border-radius: 0.25rem;
+    color: white;
+    &:focus {
+      outline: none;
+      border-color: white;
+    }
+    &.success {
+      border-color: greenyellow;
+    }
+    &.error {
+      border-color: red;
+    }
+  }
+
+  & small {
+    margin-top: 2px;
+    visibility: hidden;
+    color: rgb(241, 71, 71);
+    font-weight: bold;
+    &.error {
+      visibility: visible;
+    }
+  }
+}
+.submit {
+  width: 100%;
+  margin-top: 6px;
+  padding: 0.8rem;
+  background-color: #3498db;
+  border: 0;
+  font-size: 1.2rem;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
