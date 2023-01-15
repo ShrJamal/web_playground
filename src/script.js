@@ -9,6 +9,10 @@ const projects = [
     name: 'Form Validator',
     path: '/form-validator/index.html',
   },
+  {
+    name: 'Custom Video Player',
+    path: '/custom-video-player/index.html',
+  },
 ]
 
 const projectDiv = document.querySelector('.projects')
