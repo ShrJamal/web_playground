@@ -21,6 +21,10 @@ const projects = [
     name: 'Quote Generator',
     path: '/quote-generator/index.html',
   },
+  {
+    name: 'Fractals',
+    path: '/fractals/index.html',
+  },
 ]
 
 const projectDiv = document.querySelector('.projects')
