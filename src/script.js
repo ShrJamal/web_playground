@@ -13,6 +13,10 @@ const projects = [
     name: 'Custom Video Player',
     path: '/custom-video-player/index.html',
   },
+  {
+    name: 'Expanding Cards',
+    path: '/expanding-cards/index.html',
+  },
 ]
 
 const projectDiv = document.querySelector('.projects')
