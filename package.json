@@ -1,13 +1,22 @@
 {
-  "name": "playground",
+  "name": "web-playground",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "serve": "vite preview"
   },
+  "dependencies": {
+    "@popperjs/core": "^2.11.6",
+    "bootstrap": "^5.2.3",
+    "bootstrap-icons": "^1.10.3",
+    "swiper": "^8.4.5"
+  },
   "devDependencies": {
+    "@types/node": "^18.11.18",
+    "sass": "^1.57.1",
+    "tslib": "^2.4.1",
     "typescript": "^4.9.4",
-    "vite": "^4.0.3"
+    "vite": "^4.0.4"
   }
 }
