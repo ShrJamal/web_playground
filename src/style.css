@@ -1,0 +1,24 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.projects {
+  margin: 2rem 0;
+  padding: 2rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.project-item {
+  margin: 1rem;
+  padding: 1rem;
+  width: 15rem;
+  height: 15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid gray;
+  text-align: center;
+}

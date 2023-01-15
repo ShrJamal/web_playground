@@ -1,0 +1,11 @@
+@use 'variables.scss' as *;
+@use '_custom';
+
+// Import Sections
+@use 'sections';
+
+.app {
+  font-family: 'Kaushan Script', cursive;
+  background: $mainWhite;
+  color: $mainBlack;
+}

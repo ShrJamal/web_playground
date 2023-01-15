@@ -1,0 +1,48 @@
+@use '../variables' as *;
+
+#store {
+  background-color: $mainGrey;
+  text-align: center;
+}
+
+.store-search__icon {
+  background-color: $mainPink;
+}
+
+.store-item_container {
+  transition: all 0.3s linear;
+  &:hover {
+    box-shadow: 0 10px 15px black;
+  }
+}
+
+.store-img_container {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.store-img {
+  transition: all 0.3s ease-in-out;
+}
+.store-img_container {
+  &:hover .store-img {
+    transform: scale(1.2);
+  }
+  &:hover .store-item-icon {
+    transform: translate(0, 0);
+  }
+}
+.store-item-icon {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 0.75rem;
+  background-color: $mainYellow;
+  border-top-left-radius: 1rem;
+  transition: all 0.3s ease-in-out;
+  transform: translate(100%, 100%);
+  &:hover {
+    color: $mainWhite;
+  }
+}

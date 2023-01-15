@@ -1,0 +1,33 @@
+@use '../variables' as *;
+
+.about-title {
+  font-size: 2rem;
+}
+.about-us {
+  color: $mainPink;
+  font-size: 3rem;
+}
+.about-text {
+  color: gray;
+}
+.about-explore {
+  border: 0.15rem solid $mainBlack;
+}
+.about-img__container {
+  position: relative;
+  &::before {
+    content: '';
+    position: absolute;
+    top: -1.5rem;
+    left: -1.2rem;
+    width: 100%;
+    height: 100%;
+    outline: 0.5rem solid $mainYellow;
+    z-index: -1;
+    transition: all 0.2s ease-in-out;
+  }
+  &:hover:before {
+    top: 0;
+    left: 0;
+  }
+}

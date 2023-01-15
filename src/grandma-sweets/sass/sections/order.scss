@@ -1,0 +1,16 @@
+@use '../variables' as *;
+
+.order-cake_prop {
+  color: gray;
+}
+
+.order-now {
+  color: $mainPink;
+  border-color: $mainPink;
+  margin-bottom: 1rem;
+  &:hover {
+    color: $mainWhite;
+    background-color: $mainPink;
+    border-color: $mainPink;
+  }
+}

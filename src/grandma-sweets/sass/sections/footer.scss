@@ -1,0 +1,13 @@
+@use '../variables' as *;
+
+.socials {
+  background-color: $mainBlack;
+}
+.footer-icon {
+  font-size: 2rem;
+  color: $mainWhite;
+}
+
+.contact {
+  background-color: $mainGrey;
+}

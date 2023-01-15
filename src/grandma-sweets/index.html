@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Sweets</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+      integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+      crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <script src="./script.js" type="module"></script>
+
+  </head>
+
+  <body>
+    <div class="app">
+      <!-- Header section -->
+      <header id="header">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg px-4">
+          <a href="#" class="navbar-brand">
+            <img src="./img/logo.svg" alt="Logo" />
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#myNavbar"
+            aria-conrols="myNavbar" aria-expand="false" aria-label="Toggle navigation">
+            <i class="toggler-icon bi bi-list"></i>
+          </button>
+
+          <div id="myNavbar" class="collapse navbar-collapse">
+            <ul class="navbar-nav text-capitalize mx-auto">
+              <li class="nav-item active">
+                <a href="#header" class="nav-link">home</a>
+              </li>
+              <li class="nav-item active">
+                <a href="#about" class="nav-link">about</a>
+              </li>
+              <li class="nav-item active">
+                <a href="#store" class="nav-link">store</a>
+              </li>
+              <li class="nav-item active">
+                <a href="#services" class="nav-link">services</a>
+              </li>
+              <li class="nav-item active">
+                <a href="#order" class="nav-link">order</a>
+              </li>
+            </ul>
+            <div class="nav-info-item d-none d-lg-flex">
+              <!-- Phone number info -->
+              <div class="nav-info align-items-center d-flex mx-5">
+                <i class="bi bi-telephone-fill me-3"></i>
+                <p class="mb-0">+ 123 456 789</p>
+              </div>
+
+              <!-- Shopping cart info -->
+              <div id="cart-info" class="nav-info d-flex align-items-center mx-5">
+                <i class="cart-info__icon bi bi-cart-fill me-3"></i>
+                <p class="mb-0 text-capitalize">
+                  <span id="cart-count">2</span>
+                  items - $
+                  <span id="cart-total">10.49</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Banner -->
+        <div class="container-fluid">
+          <div class="row max-height align-items-center">
+            <div class="col-10 mx-auto banner text-center">
+              <h1 class="text-capitalize">
+                Welcome to <strong class="banner-title">Grandma's</strong>
+              </h1>
+              <a href="#store" class="btn banner-link my-2">EXPLORE</a>
+              <!-- store -->
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- About US section -->
+      <section id="about" class="about py-5 container">
+        <div class="row">
+          <div class="col-10 col-md-6 mb-5 mx-auto justify-items-center">
+            <h2 class="mb-4 about-title">
+              About <strong class="about-us">Us</strong>
+            </h2>
+            <p class="about-text">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Explicabo,
+              necessitatibus sed nihil alias temporibus expedita eligendi,
+              molestias repudiandae impedit saepe cumque sint mollitia dolorem
+              tempore repellat? Ea voluptates blanditiis numquam minus dignissimos
+              quia iusto tenetur.
+            </p>
+            <a href="#about" class="btn btn-outline-secondary">EXPLORE</a>
+          </div>
+          <div class="about-img col-10 col-md-6 mx-auto">
+            <div class="about-img__container">
+              <img class="img-fluid" src="./img/sweets-1.jpeg" alt="About us image" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Store section -->
+      <section id="store" class="pb-5">
+        <div class="container-fluid col">
+          <h1 class="store-title mx-auto">
+            Our <strong class="banner-title">Store</strong>
+          </h1>
+          <div class="d-flex flex-wrap justify-content-center">
+            <div class="btn btn-outline-dark m-2">ALL</div>
+            <div class="btn btn-outline-dark m-2">CAKES</div>
+            <div class="btn btn-outline-dark m-2">CUPCAKES</div>
+            <div class="btn btn-outline-dark m-2">SWEETS</div>
+            <div class="btn btn-outline-dark m-2">DOUGHNUTS</div>
+          </div>
+
+          <!-- Seach Box -->
+          <form class="input-group mx-auto" style="max-width: 25rem">
+            <div class="input-group-text store-search__icon">
+              <i class="bi bi-search"></i>
+            </div>
+            <input type="text" name="search" id="store-search" class="form-control" placeholder="item...." />
+          </form>
+
+          <!-- Store items -->
+          <div id="store-items" class="row justify-content-sm-start justify-content-center">
+            <div class="store-item sweets mt-4 col-10 col-sm-6 col-md-4 col-lg-3 col-xxl-2" data-item="sweets">
+              <div class="card store-item_container">
+                <div class="store-img_container">
+                  <img class="card-img-top store-img" src="./img/sweets-1.jpeg" />
+                  <span class="store-item-icon">
+                    <i class="bi bi-cart-fill"></i>
+                  </span>
+                </div>
+                <div class="card-body d-flex justify-content-between">
+                  <h5 class="store-item-name">Sweet Item</h5>
+                  <h5 class="store-item-price">5$</h5>
+                </div>
+              </div>
+            </div>
+
+            <div class="store-item cakes mt-4 col-10 col-sm-6 col-md-4 col-lg-3 col-xxl-2" data-item="cakes">
+              <div class="card store-item_container">
+                <div class="store-img_container">
+                  <img class="card-img-top store-img" src="./img/cake-1.jpeg" />
+                  <span class="store-item-icon">
+                    <i class="bi bi-cart-fill"></i>
+                  </span>
+                </div>
+                <div class="card-body d-flex justify-content-between">
+                  <h5 class="store-item-name">Cake Item</h5>
+                  <h5 class="store-item-price">5$</h5>
+                </div>
+              </div>
+            </div>
+
+            <div class="store-item doughnuts mt-4 col-10 col-sm-6 col-md-4 col-lg-3 col-xxl-2" data-item="doughnuts">
+              <div class="card store-item_container">
+                <div class="store-img_container">
+                  <img class="card-img-top store-img" src="./img/doughnut-1.jpeg" />
+                  <span class="store-item-icon">
+                    <i class="bi bi-cart-fill"></i>
+                  </span>
+                </div>
+                <div class="card-body d-flex justify-content-between">
+                  <h5 class="store-item-name">Doughnut Item</h5>
+                  <h5 class="store-item-price">5$</h5>
+                </div>
+              </div>
+            </div>
+
+            <div class="store-item cupcakes mt-4 col-10 col-sm-6 col-md-4 col-lg-3 col-xxl-2" data-item="cupcakes">
+              <div class="card store-item_container">
+                <div class="store-img_container">
+                  <img class="card-img-top store-img" src="./img/cupcake-1.jpeg" />
+                  <span class="store-item-icon">
+                    <i class="bi bi-cart-fill"></i>
+                  </span>
+                </div>
+                <div class="card-body d-flex justify-content-between">
+                  <h5 class="store-item-name">Cupcake Item</h5>
+                  <h5 class="store-item-price">5$</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Services Section -->
+      <section id="services" class="container-fluid">
+        <div class="service-container row py-5 justify-content-center">
+          <div class="col-10 col-sm-4 text-center">
+            <img class="mb-3" src="./img/bread-icon.png" />
+            <h4 class="mb-3">BREAD</h4>
+            <p class="">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit,
+              veniam.
+            </p>
+          </div>
+          <div class="col-10 col-sm-4 text-center">
+            <img class="" src="./img/cupcake-icon.png" />
+            <h4>CUPCAKE</h4>
+            <p class="lead">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit,
+              veniam.
+            </p>
+          </div>
+          <div class="col-10 col-sm-4 text-center">
+            <img src="./img/candy-icon.png" />
+            <h4 class="service-title">CANDY</h4>
+            <p class="service-text lead">
+              Lorem ipsum dolor sit amet consectetur adipisicing elit. Velit,
+              veniam.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Order Section -->
+      <section id="order" class="container-fluid text-center mt-5">
+        <h1 class="order-title mb-5">
+          Order <strong class="banner-title">Cake</strong>
+        </h1>
+        <div class="row justify-content-around">
+          <div class="col-10 col-sm-4 mb-5">
+            <h3 class="order-cake_name py-4">Birthday Cake</h3>
+            <p class="order-cake_prop">Birthday Cake With Name</p>
+            <p class="order-cake_prop">Custom Ingredients</p>
+            <p class="order-cake_prop">Custom Size</p>
+            <p class="order-cake_prop">Custom Design</p>
+            <div class="order-now btn btn-outline-primary">Order Now</div>
+            <p class="order-cake_prop">Starting at 5$</p>
+            <img src="./img/trans-cake.png" alt="" />
+          </div>
+
+          <div class="col-10 col-sm-4 mb-5">
+            <h3 class="order-cake_name py-4">Custom Cake</h3>
+            <p class="order-cake_prop">Birthday Cake With Name</p>
+            <p class="order-cake_prop">Custom Ingredients</p>
+            <p class="order-cake_prop">Custom Size</p>
+            <p class="order-cake_prop">Custom Design</p>
+            <div class="order-now btn btn-outline-primary">Order Now</div>
+            <p class="order-cake_prop">Starting at 10$</p>
+            <img src="./img/trans-custom.png" alt="" />
+          </div>
+          <div class="col-10 col-sm-4 mb-5">
+            <h3 class="order-cake_name py-4">Wedding Cake</h3>
+            <p class="order-cake_prop">Birthday Cake With Name</p>
+            <p class="order-cake_prop">Custom Ingredients</p>
+            <p class="order-cake_prop">Custom Size</p>
+            <p class="order-cake_prop">Custom Design</p>
+            <div class="order-now btn btn-outline-primary">Order Now</div>
+            <p class="order-cake_prop">Starting at 15$</p>
+            <img src="./img/trans-wedding.png" alt="" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer id="footer" class="container-fuild">
+        <div class="row">
+          <div class="socials py-5 col-sm-6 text-center">
+            <h2 class="banner-title">Grandma's</h2>
+            <div class="py-4 d-flex justify-content-evenly">
+              <a class="footer-icon" href="#">
+                <i class="bi bi-facebook"></i>
+              </a>
+              <a class="footer-icon" href="#">
+                <i class="bi bi-twitter"></i>
+              </a>
+
+              <a class="footer-icon" href="#">
+                <i class="bi bi-instagram"> </i>
+              </a>
+
+              <a class="footer-icon" href="#">
+                <i class="bi bi-youtube"></i>
+              </a>
+            </div>
+          </div>
+
+          <div class="contact py-5 col-sm-6 text-center mx-auto">
+            <h2 class="h1 pb-2">Contact</h2>
+            <div class="contact-info ps-4">
+              <div class="contact-item d-flex">
+                <i class="pt-1 pe-4 bi bi-map-fill"></i>
+                <p class="">123 Main Street, San Diego, CA 90101</p>
+              </div>
+              <div class="contact-item d-flex">
+                <i class="pt-1 pe-4 bi bi-telephone-fill"></i>
+                <p class="">123-456-789</p>
+              </div>
+              <div class="contact-item d-flex">
+                <i class="pt-1 pe-4 bi bi-envelope-fill"></i>
+                <p class="">email@example.com</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+
+</html>
