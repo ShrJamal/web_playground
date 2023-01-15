@@ -17,6 +17,10 @@ const projects = [
     name: 'Expanding Cards',
     path: '/expanding-cards/index.html',
   },
+  {
+    name: 'Quote Generator',
+    path: '/quote-generator/index.html',
+  },
 ]
 
 const projectDiv = document.querySelector('.projects')
