@@ -13,7 +13,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "types": ["vitest/importMeta", "vite/client"]
+    "types": ["vitest/importMeta", "vite/client", "@webgpu/types"]
   },
   "include": ["./src", "src/test"]
 }

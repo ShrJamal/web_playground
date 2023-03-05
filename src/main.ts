@@ -3,6 +3,12 @@ import * as Comlink from 'comlink'
 const app = document.querySelector<HTMLDivElement>('#app')!
 import Worker from './fractal.ts?worker'
 
+if (navigator.gpu) {
+  console.log('GPU is available')
+} else {
+  console.log('GPU is not available')
+}
+
 const canvas = document.createElement('canvas')
 app.appendChild(canvas)
 const ctx = canvas.getContext('2d')!
@@ -63,5 +69,3 @@ canvas.addEventListener('mousemove', (e) => {
   offset[1] -= (initPos.y - e.clientY) * scale
   renderFractal()
 })
-
-renderFractal()
