@@ -1,10 +1,19 @@
-const app = document.querySelector<HTMLDivElement>('#app')!
+import { createTriangle } from './triangle'
 
-app.innerHTML = `
-  <h1>Hello WebGPU!</h1>
-  ${
-    navigator.gpu
-      ? '<p>WebGPU is supported!</p>'
-      : '<p>WebGPU is not supported!</p>'
-  }
-`
+const canvas = document.querySelector<HTMLCanvasElement>('#canvas')!
+const ctx = canvas.getContext('webgpu')!
+
+async function getGPUAdapter() {
+  return navigator.gpu.requestAdapter().then((a) => a?.requestDevice())
+}
+
+async function render() {
+  const device = await getGPUAdapter()
+  createTriangle(device!, ctx)
+}
+
+render()
+
+document.addEventListener('resize', () => {
+  render()
+})
