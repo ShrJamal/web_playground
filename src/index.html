@@ -9,7 +9,12 @@
 
   <body>
     <div id="app" />
+    <label class="max-iterations">
+      <span>Max iterations: <span id="max-iterations">256</span></span>
+      <input type="range" min="0" max="15" value="8" step="1" />
+    </label>
     <canvas id="canvas" width="600" height="600" />
-    <script type="module" src="/main.ts"></script>
+    <script type="module" src="/fractals/main.js"></script>
+    <!-- <script type="module" src="/main.ts"></script> -->
   </body>
 </html>
