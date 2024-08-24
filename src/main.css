@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: hsl(202, 88%, 51%);
+  --color-primary-forground: white;
+  --color-secondary: hsl(202, 88%, 51%);
+}

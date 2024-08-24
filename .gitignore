@@ -31,3 +31,4 @@ pnpm-lock.yaml
 # vercel
 .vercel
 
+bun.lockb
