@@ -1,18 +1,32 @@
 {
   "compilerOptions": {
+    // Module resolution
     "target": "ESNext",
     "module": "ESNext",
-    "lib": ["ESNext", "DOM"],
-    "moduleResolution": "Node",
-    "useDefineForClassFields": true,
+    "moduleResolution": "Bundler",
+
+    // JSX
+    "jsx": "preserve",
+    "jsxFactory": "h",
+    "jsxFragmentFactory": "Fragment",
+
+    // Core checks
     "strict": true,
-    "sourceMap": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
     "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+
+    // Additional safety
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "useUnknownInCatchVariables": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noImplicitReturns": true
-  },
-  "include": ["./src"]
+
+    "types": ["vite/client"],
+    "paths": {
+      "~/*": ["./src/*"]
+    }
+  }
 }
