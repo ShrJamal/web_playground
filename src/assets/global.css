@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+#app {
+  width: 100svw;
+  height: 100svh;
+  display: flex;
+  flex-direction: column;
+}
+
+@plugin "daisyui" {
+  themes:
+    light --default,
+    dark --prefersdark;
+}
