@@ -24,7 +24,7 @@
     "useUnknownInCatchVariables": true,
     "noUnusedLocals": true,
 
-    "types": ["vite/client"],
+    "types": ["vite/client", "./worker-configuration.d.ts"],
     "paths": {
       "~/*": ["./src/*"]
     }

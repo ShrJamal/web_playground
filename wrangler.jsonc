@@ -1,0 +1,25 @@
+{
+  "$schema": "https://www.unpkg.com/wrangler/config-schema.json",
+  "name": "web-playground",
+  "main": "server/index.ts",
+  "compatibility_date": "2025-10-26",
+  "preview_urls": true,
+  "placement": {
+    "mode": "smart"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false
+    },
+    "traces": {
+      "enabled": true
+    }
+  },
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "!/api/docs/*"],
+    "html_handling": "drop-trailing-slash"
+  }
+}
