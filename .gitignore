@@ -1,34 +1,50 @@
 .DS_Store
+.git
 node_modules/
-.vscode/
-.pnp/
-.pnp.js/
-*.pem
-
-# build
-build/
-package/
 dist/
-dist-ssr/
+dev-dist/
+.cache/
+.output/
+.astro
+.turbo
+out/
+.vinxi/
+.tanstack
+.nitro
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-.pnpm-debug.log*
-
-# local env files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.local
+# typescript
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # vercel
 .vercel
+.next/
+next-env.d.ts
 
-bun.lockb
+# Cloudflare
+worker-configuration.d.ts
+.mf
+.wrangler
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+deno.lock
+bun.lock
+
+# environment variables
+# .env
+.env.local
+.env.production
+
+# DB
+.drizzle/
+
+.cursorrules
