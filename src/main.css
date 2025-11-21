@@ -1,7 +1,66 @@
 @import "tailwindcss";
 
-@theme {
-  --color-primary: hsl(202, 88%, 51%);
-  --color-primary-forground: white;
-  --color-secondary: hsl(202, 88%, 51%);
+@layer components {
+  .tile {
+    @apply absolute flex justify-center items-center font-bold rounded-sm;
+    transition:
+      left 100ms ease-in-out,
+      top 100ms ease-in-out,
+      transform 100ms ease-in-out;
+    width: calc(25% - 0.75rem); /* 25% minus gap */
+    height: calc(25% - 0.75rem);
+  }
+
+  .tile-2 {
+    @apply bg-[#eee4da] text-[#776e65] text-5xl;
+  }
+  .tile-4 {
+    @apply bg-[#ede0c8] text-[#776e65] text-5xl;
+  }
+  .tile-8 {
+    @apply bg-[#f2b179] text-[#f9f6f2] text-5xl;
+  }
+  .tile-16 {
+    @apply bg-[#f59563] text-[#f9f6f2] text-4xl;
+  }
+  .tile-32 {
+    @apply bg-[#f67c5f] text-[#f9f6f2] text-4xl;
+  }
+  .tile-64 {
+    @apply bg-[#f65e3b] text-[#f9f6f2] text-4xl;
+  }
+  .tile-128 {
+    @apply bg-[#edcf72] text-[#f9f6f2] text-3xl shadow-[0_0_30px_10px_rgba(243,215,116,0.2381)];
+  }
+  .tile-256 {
+    @apply bg-[#edcc61] text-[#f9f6f2] text-3xl shadow-[0_0_30px_10px_rgba(243,215,116,0.31746)];
+  }
+  .tile-512 {
+    @apply bg-[#edc850] text-[#f9f6f2] text-3xl shadow-[0_0_30px_10px_rgba(243,215,116,0.39682)];
+  }
+  .tile-1024 {
+    @apply bg-[#edc53f] text-[#f9f6f2] text-2xl shadow-[0_0_30px_10px_rgba(243,215,116,0.47619)];
+  }
+  .tile-2048 {
+    @apply bg-[#edc22e] text-[#f9f6f2] text-2xl shadow-[0_0_30px_10px_rgba(243,215,116,0.55555)];
+  }
+  .tile-super {
+    @apply bg-[#3c3a32] text-[#f9f6f2] text-xl;
+  }
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-pop {
+  animation: pop 200ms ease-in-out backwards;
 }
