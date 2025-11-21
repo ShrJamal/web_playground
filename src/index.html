@@ -2,17 +2,19 @@
 <html lang="en">
 
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Playground</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <title>Vite Playground</title>
   </head>
 
-  <body>
+  <body class="h-svh w-svw flex flex-col gap-4 items-center justify-center">
     <div id="app">
+      <canvas id="fractal-canvas"></canvas>
     </div>
-
-    <script type="module" src="/main.ts"></script>
+    <script type="module">
+      import "/main.ts";
+    </script>
   </body>
 
 </html>

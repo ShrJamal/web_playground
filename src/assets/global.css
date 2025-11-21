@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg-glass: rgba(20, 20, 30, 0.6);
+  --color-border-glass: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  @apply bg-black text-white overflow-hidden font-sans;
+}
+
+canvas {
+  @apply block w-screen h-screen;
+}
+
+.glass-panel {
+  @apply bg-bg-glass backdrop-blur-xl border border-border-glass shadow-2xl;
+}
