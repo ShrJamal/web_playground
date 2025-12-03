@@ -9,8 +9,9 @@ dev-dist/
 .turbo
 out/
 .vinxi/
-.tanstack
-.nitro
+.tanstack/
+.nitro/
+.husky/
 
 # typescript
 *.tsbuildinfo
