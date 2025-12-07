@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@plugin "daisyui";
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh; /* Ensure full viewport height */
+  max-width: 100dvw; /* Hard cap on width */
+}
+
+@layer base {
+  * {
+    @apply border-base-300 outline-base-content/50;
+  }
+  body {
+    @apply text-base-content;
+  }
+
+  p {
+    @apply text-base-content/80 dark:text-base-content/70;
+  }
+}
+
+@plugin "daisyui/theme" {
+  name: "dark";
+  default: false;
+  prefersdark: true;
+  color-scheme: "dark";
+
+  --color-base-100: oklch(14% 0.005 285.823);
+  --color-base-200: oklch(21% 0.006 285.885);
+  --color-base-300: oklch(27% 0.006 286.033);
+  --color-base-content: oklch(96% 0.001 286.375);
+
+  --color-primary: oklch(60% 0.118 184);
+  --color-primary-content: oklch(98% 0.018 155.826);
+
+  --color-secondary: oklch(59% 0.145 163.225);
+  --color-secondary-content: oklch(97% 0.021 166.113);
+
+  --color-accent: oklch(77% 0.152 181.912);
+  --color-accent-content: oklch(38% 0.063 188.416);
+
+  --color-neutral: oklch(87% 0.006 286.286);
+  --color-neutral-content: oklch(12% 0.042 264.695);
+
+  --color-info: oklch(70% 0.165 254.624);
+  --color-info-content: oklch(28% 0.091 267.935);
+
+  --color-success: oklch(59.86% 0.177 163.223);
+  --color-success-content: oklch(100% 0 0);
+
+  --color-warning: oklch(85% 0.199 91.936);
+  --color-warning-content: oklch(28% 0.066 53.813);
+
+  --color-error: oklch(70% 0.191 22.216);
+  --color-error-content: oklch(25% 0.092 26.042);
+
+  --border: 1px;
+  --radius-selector: 2rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.5rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --depth: 0;
+  --noise: 0;
+}
+
+@theme {
+  --breakpoint-2xs: 375px;
+  --breakpoint-xs: 480px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 1600px;
+  --breakpoint-4xl: 1920px;
+  --breakpoint-5xl: 2560px;
+  --breakpoint-6xl: 3200px;
+  --breakpoint-7xl: 3840px;
+  --breakpoint-8xl: 4480px;
+}
