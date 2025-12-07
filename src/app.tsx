@@ -14,7 +14,9 @@ export default function App() {
       <h1 class="text-4xl font-bold">Cloudflare + Vite + Solid</h1>
       <button
         class="btn btn-primary"
-        onClick={() => setCount((count) => count + 1)}
+        onClick={() => {
+          setCount((p) => p + 1)
+        }}
         type="button"
       >
         count is {count()}

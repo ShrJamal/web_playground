@@ -5,10 +5,10 @@ import solid from "vite-plugin-solid"
 import tsconfigPaths from "vite-tsconfig-paths"
 
 export default defineConfig({
-  root: "src",
-  publicDir: "../public",
+  publicDir: "public",
+  envPrefix: "PUBLIC_",
   server: {
     port: 3000,
   },
-  plugins: [tsconfigPaths(), tailwindcss(), solid(), cloudflare()],
+  plugins: [tsconfigPaths(), tailwindcss(), cloudflare(), solid()],
 })

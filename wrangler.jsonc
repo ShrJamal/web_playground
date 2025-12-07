@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.unpkg.com/wrangler/config-schema.json",
   "name": "web-playground",
-  "main": "server/index.ts",
-  "compatibility_date": "2025-10-26",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2025-12-02",
   "preview_urls": true,
   "placement": {
     "mode": "smart"
