@@ -1,34 +1,53 @@
+import { DurableObject } from "cloudflare:workers"
+import crossws from "crossws/adapters/cloudflare"
 import { Hono } from "hono"
-import { upgradeWebSocket } from "hono/cloudflare-workers"
+import { realtimeHooks } from "../realtime.server"
 
 const app = new Hono()
 
+// Create crossws adapter with our typed hooks
+const ws = crossws({ hooks: realtimeHooks })
+
 app
-  // .get("/", (c) => c.text("Hello World"))
-  .get("/api/hello", (c) => c.text("Hello World from API"))
-  .use(
-    "/api/ws",
-    upgradeWebSocket((_c) => {
-      return {
-        onOpen: () => {
-          console.log("WebSocket connected")
-        },
-        onMessage: (ev) => {
-          console.log("WebSocket message received", ev.data)
-        },
-        onClose: () => {
-          console.log("WebSocket closed")
-        },
-        onError: (_, error) => {
-          console.error("WebSocket error", error)
-        },
-      }
-    }),
-  )
+  .get("/api/hello", (c) => c.text("Hello World"))
   .notFound((c) => c.text("Not Found", 404))
 
 export default {
-  async fetch(req) {
-    return app.fetch(req)
+  async fetch(req, env, ctx) {
+    if (req.url.includes("/api/realtime")) {
+      return req.headers.get("upgrade") === "websocket"
+        ? ws.handleUpgrade(req, env, ctx)
+        : new Response("Expected WebSocket", { status: 426 })
+    }
+    return app.fetch(req, env, ctx)
   },
 } satisfies ExportedHandler<Env>
+
+export class $DurableObject extends DurableObject<Env> {
+  constructor(state: DurableObjectState, env: Env) {
+    super(state, env)
+    ws.handleDurableInit(this, state, env)
+  }
+
+  fetch(request: Request) {
+    return ws.handleDurableUpgrade(this, request)
+  }
+
+  webSocketMessage(client: WebSocket, message: string) {
+    return ws.handleDurableMessage(this, client, message)
+  }
+
+  webSocketPublish(topic: string, message: string, opts: any) {
+    console.log("webSocketPublish", topic, message, opts)
+    return ws.handleDurablePublish(this, topic, message, opts)
+  }
+
+  webSocketClose(
+    client: WebSocket,
+    code: number,
+    reason: string,
+    wasClean: boolean,
+  ) {
+    return ws.handleDurableClose(this, client, code, reason, wasClean)
+  }
+}

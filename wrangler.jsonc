@@ -21,5 +21,19 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "!/api/docs/*"],
     "html_handling": "drop-trailing-slash"
-  }
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "$DurableObject",
+        "class_name": "$DurableObject"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["$DurableObject"]
+    }
+  ]
 }

@@ -12,6 +12,7 @@
     "prepare": "npx simple-git-hooks"
   },
   "dependencies": {
+    "crossws": "^0.4.1",
     "hono": "^4.10.7",
     "solid-js": "^1.9.10",
     "zod": "^4.1.13"
