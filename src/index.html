@@ -9,26 +9,40 @@
     />
     <meta
       name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <title>Playground</title>
+    <meta
+      name="theme-color"
+      content="#07070c"
+    />
+    <meta
+      name="description"
+      content="2048 — Aurora edition. Slide and merge glowing tiles to reach 2048."
+    />
+    <title>2048 · Aurora</title>
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link
+      rel="preconnect"
+      href="https://fonts.gstatic.com"
+      crossorigin
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link
       rel="stylesheet"
       href="/main.css"
     />
   </head>
-
-  <body class="w-screen min-h-svh h-full flex flex-col">
-    <main class="flex-1 flex flex-col justify-center items-center gap-4">
-      <img
-        src="/favicon.svg"
-        alt="Vite"
-        class="w-24 h-24"
-      />
-      <h1 class="text-4xl font-bold">🎉 Vite + TailwindCSS 🎉</h1>
-      <div class="app" />
-    </main>
-
+  <body>
+    <div
+      id="root"
+      class="app"
+    ></div>
     <script
       type="module"
       src="/main.ts"
