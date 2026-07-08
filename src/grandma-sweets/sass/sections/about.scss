@@ -1,4 +1,4 @@
-@use '../variables' as *;
+@use "../variables" as *;
 
 .about-title {
   font-size: 2rem;
@@ -16,7 +16,7 @@
 .about-img__container {
   position: relative;
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: -1.5rem;
     left: -1.2rem;
