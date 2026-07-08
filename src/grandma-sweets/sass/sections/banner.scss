@@ -1,9 +1,9 @@
-@use '../variables' as *;
+@use "../variables" as *;
 
 .max-height {
   min-height: calc(100vh - 76px);
-  background: linear-gradient($yellowTrans, $yellowTrans),
-    url('./img/headerBcg.jpeg');
+  background:
+    linear-gradient($yellowTrans, $yellowTrans), url("./img/headerBcg.jpeg");
   background-size: cover;
   background-position: center;
   background-attachment: fixed;

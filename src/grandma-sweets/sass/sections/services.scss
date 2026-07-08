@@ -1,9 +1,10 @@
-@use '../variables' as *;
+@use "../variables" as *;
 
 .service-container {
   color: $mainWhite;
-  background: linear-gradient(rgb(0, 0, 0, 0.5), rgb(0, 0, 0, 0.6)),
-    url('./img/servicesBcg.jpeg');
+  background:
+    linear-gradient(rgb(0, 0, 0, 0.5), rgb(0, 0, 0, 0.6)),
+    url("./img/servicesBcg.jpeg");
   background-size: cover;
   background-blend-mode: color;
 }
