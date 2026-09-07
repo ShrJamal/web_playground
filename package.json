@@ -7,7 +7,8 @@
     "build": "tsc && bun build src/server.ts",
     "check": "vp check",
     "check:fix": "vp check --fix",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "mcp:walkthrough": "bun src/mcp/walkthrough.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0"
