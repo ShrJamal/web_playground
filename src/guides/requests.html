@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>2. Requests — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 2</span>
+      <h1>Stateless requests</h1>
+      <p class="lede">
+        As of revision <code>2026-07-28</code> there is no handshake and no
+        session. Every request is self-contained: it carries its own protocol
+        version and capabilities, and any server instance can answer it.
+      </p>
+
+      <div class="note">
+        <strong>If you learned MCP before this.</strong>
+        <code>initialize</code>, <code>notifications/initialized</code>, and the
+        <code>Mcp-Session-Id</code> header are gone. Revisions up to
+        <code>2025-11-25</code> are now called <em>legacy</em>;
+        <code>2026-07-28</code> and later are <em>modern</em>. See
+        <a href="#compat">backward compatibility</a> below.
+      </div>
+
+      <h2>Three message shapes</h2>
+      <pre><code>// Request — has an id, expects a response
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": { "_meta": { ... } } }
+
+// Result — same id, and a required resultType
+{ "jsonrpc": "2.0", "id": 1, "result": { "resultType": "complete", "tools": [] } }
+
+// Error — same id
+{ "jsonrpc": "2.0", "id": 1, "error": { "code": -32601, "message": "Method not found" } }
+
+// Notification — no id, no response, ever
+{ "jsonrpc": "2.0", "method": "notifications/tools/list_changed" }</code></pre>
+
+      <div class="note">
+        <strong>resultType is required now.</strong> <code>"complete"</code> for
+        an ordinary result, <code>"input_required"</code> when the server needs
+        something back before it can finish. A result from an older server that
+        omits the field is treated as <code>"complete"</code>.
+      </div>
+
+      <h2>What every request carries</h2>
+      <p>
+        The metadata that used to be exchanged once, at <code>initialize</code>,
+        now rides along in <code>params._meta</code> on every single request.
+      </p>
+      <pre><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "roll_dice",
+    "arguments": { "count": 3, "sides": 20 },
+    "_meta": {
+      "io.modelcontextprotocol/protocolVersion":    "2026-07-28",   // REQUIRED
+      "io.modelcontextprotocol/clientCapabilities": { "elicitation": {} },  // REQUIRED
+      "io.modelcontextprotocol/clientInfo":         { "name": "ExampleClient", "version": "1.0.0" }
+    }
+  }
+}</code></pre>
+      <p>
+        The server answers in kind, identifying itself in the result's
+        <code>_meta</code>:
+      </p>
+      <pre><code>"result": {
+  "resultType": "complete",
+  "content": [{ "type": "text", "text": "Rolled 3d20: 10, 7, 13 (total 30)" }],
+  "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "dice-server", "version": "1.0.0" } }
+}</code></pre>
+
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 300"
+          role="img"
+          aria-label="Comparison of the legacy handshake flow against the modern stateless per-request flow"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="10"
+          >
+            <text
+              x="10"
+              y="16"
+              fill="var(--muted)"
+              font-size="11"
+              font-weight="700"
+            >
+              LEGACY (2025-11-25 and earlier)
+            </text>
+            <line
+              x1="70"
+              y1="26"
+              x2="70"
+              y2="130"
+              stroke="var(--client)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <line
+              x1="540"
+              y1="26"
+              x2="540"
+              y2="130"
+              stroke="var(--server)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <text
+              x="40"
+              y="36"
+              fill="var(--client)"
+            >
+              client
+            </text>
+            <text
+              x="512"
+              y="36"
+              fill="var(--server)"
+            >
+              server
+            </text>
+            <defs>
+              <marker
+                id="ar2"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path
+                  d="M0,0 L7,3 L0,6 Z"
+                  fill="currentColor"
+                />
+              </marker>
+            </defs>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.7"
+              marker-end="url(#ar2)"
+              fill="none"
+            >
+              <line
+                x1="70"
+                y1="56"
+                x2="534"
+                y2="56"
+              />
+              <line
+                x1="540"
+                y1="80"
+                x2="76"
+                y2="80"
+              />
+              <line
+                x1="70"
+                y1="104"
+                x2="534"
+                y2="104"
+              />
+              <line
+                x1="70"
+                y1="128"
+                x2="534"
+                y2="128"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="305"
+                y="50"
+              >
+                initialize (version + capabilities, once)
+              </text>
+              <text
+                x="305"
+                y="74"
+              >
+                result (version + capabilities)
+              </text>
+              <text
+                x="305"
+                y="98"
+              >
+                notifications/initialized
+              </text>
+              <text
+                x="305"
+                y="122"
+              >
+                tools/call — server relies on session state
+              </text>
+            </g>
+
+            <text
+              x="10"
+              y="176"
+              fill="var(--muted)"
+              font-size="11"
+              font-weight="700"
+            >
+              MODERN (2026-07-28)
+            </text>
+            <line
+              x1="70"
+              y1="186"
+              x2="70"
+              y2="284"
+              stroke="var(--client)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <line
+              x1="540"
+              y1="186"
+              x2="540"
+              y2="284"
+              stroke="var(--server)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <text
+              x="40"
+              y="196"
+              fill="var(--client)"
+            >
+              client
+            </text>
+            <text
+              x="512"
+              y="196"
+              fill="var(--server)"
+            >
+              any instance
+            </text>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.7"
+              marker-end="url(#ar2)"
+              fill="none"
+            >
+              <line
+                x1="70"
+                y1="220"
+                x2="534"
+                y2="220"
+              />
+              <line
+                x1="540"
+                y1="244"
+                x2="76"
+                y2="244"
+              />
+              <line
+                x1="70"
+                y1="282"
+                x2="534"
+                y2="282"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="305"
+                y="214"
+              >
+                tools/call + _meta { protocolVersion, clientCapabilities }
+              </text>
+              <text
+                x="305"
+                y="238"
+              >
+                result { resultType, _meta { serverInfo } }
+              </text>
+              <text
+                x="305"
+                y="262"
+                fill="var(--muted)"
+              >
+                server/discover is OPTIONAL — identity and versions up front
+              </text>
+              <text
+                x="305"
+                y="276"
+              >
+                tools/call + _meta { ... } — independent again
+              </text>
+            </g>
+          </g>
+        </svg>
+        <p class="cap">
+          The metadata did not disappear; it moved from a one-time handshake
+          onto every request.
+        </p>
+      </div>
+
+      <h2>Version negotiation without a handshake</h2>
+      <p>
+        The client states its version on the request. A server that doesn't
+        support it rejects that request with <code>-32022</code> and lists what
+        it does support; the client picks one and retries.
+      </p>
+      <pre><code>{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32022,
+    "message": "Unsupported protocol version",
+    "data": { "supported": ["2026-07-28", "2025-11-25"], "requested": "1900-01-01" }
+  }
+}</code></pre>
+
+      <h2>server/discover</h2>
+      <p>
+        Servers <strong>MUST</strong> implement it; clients
+        <strong>MAY</strong> skip it. It's one request that returns versions,
+        capabilities, identity and usage instructions — handy for showing a
+        server in a UI, and used as the era probe on stdio.
+      </p>
+      <pre><code>// -> server/discover  (params: just _meta)
+// &lt;- result
+{
+  "resultType": "complete",
+  "supportedVersions": ["2026-07-28"],
+  "capabilities": { "tools": {}, "resources": {} },
+  "instructions": "This server provides weather and resource utilities.",
+  "ttlMs": 3600000,
+  "cacheScope": "public",
+  "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "ExampleServer", "version": "1.0.0" } }
+}</code></pre>
+
+      <h2>Where state went</h2>
+      <p>
+        The protocol has no session, so anything spanning calls must be an
+        explicit, server-minted handle passed as an ordinary tool argument:
+      </p>
+      <pre><code>// -> tools/call create_basket {}
+// &lt;- structuredContent { "basket_id": "bsk_a1b2c3" }
+// -> tools/call add_item { "basket_id": "bsk_a1b2c3", "sku": "..." }</code></pre>
+      <p>
+        The model carries the handle forward. Treat a handle as a name, not a
+        capability: re-check authorization on every call, keep it opaque, give
+        it a bounded lifetime, and say so in the tool description.
+      </p>
+
+      <div class="note">
+        <strong>Also gone with sessions:</strong> list results must not vary
+        per-connection, an open stdio process is not a conversation, and SSE
+        stream resumability (<code>Last-Event-ID</code>) is removed — a broken
+        stream means re-issuing the request with a new id.
+      </div>
+
+      <h2>Caching replaces polling</h2>
+      <p>
+        <code>tools/list</code>, <code>prompts/list</code>,
+        <code>resources/list</code>, <code>resources/read</code> and
+        <code>resources/templates/list</code> must return
+        <code>ttlMs</code> (freshness hint) and <code>cacheScope</code> (<code
+          >"public"</code
+        >
+        or <code>"private"</code>). Return tools in a deterministic order so
+        client caches and prompt caches actually hit.
+      </p>
+
+      <h2>Error codes</h2>
+      <table>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>When</th>
+        </tr>
+        <tr>
+          <td><code>-32700</code></td>
+          <td>Parse error</td>
+          <td>Body wasn't valid JSON</td>
+        </tr>
+        <tr>
+          <td><code>-32600</code></td>
+          <td>Invalid request</td>
+          <td>Not a valid JSON-RPC object</td>
+        </tr>
+        <tr>
+          <td><code>-32601</code></td>
+          <td>Method not found</td>
+          <td>Unknown method name</td>
+        </tr>
+        <tr>
+          <td><code>-32602</code></td>
+          <td>Invalid params</td>
+          <td>Missing <code>_meta</code>, unknown tool, resource not found</td>
+        </tr>
+        <tr>
+          <td><code>-32603</code></td>
+          <td>Internal error</td>
+          <td>Your handler threw</td>
+        </tr>
+        <tr>
+          <td><code>-32020</code></td>
+          <td>HeaderMismatch</td>
+          <td>HTTP header disagrees with the body</td>
+        </tr>
+        <tr>
+          <td><code>-32021</code></td>
+          <td>MissingRequiredClientCapability</td>
+          <td>Request needs a capability the client didn't declare</td>
+        </tr>
+        <tr>
+          <td><code>-32022</code></td>
+          <td>UnsupportedProtocolVersion</td>
+          <td>Version in <code>_meta</code> not supported</td>
+        </tr>
+      </table>
+      <p>
+        <code>-32020</code>&ndash;<code>-32099</code> is now reserved for the
+        spec: don't invent codes there. <code>-32002</code> (resource not found)
+        is retired in favour of <code>-32602</code>, though clients should still
+        accept it from older servers.
+      </p>
+
+      <div class="note">
+        <strong>Tool failures are not protocol errors.</strong> A tool that
+        fails (API down, bad date, value out of range) returns a normal result
+        with <code>isError: true</code> and the message in <code>content</code>,
+        so the model can read it and self-correct. Reserve JSON-RPC errors for
+        unknown tools, malformed requests and server faults. This has not
+        changed, and it is still the most common beginner bug.
+      </div>
+
+      <h2 id="compat">Backward compatibility</h2>
+      <p>
+        A dual-era server can serve both: a request with modern
+        <code>_meta</code> is served statelessly, an
+        <code>initialize</code> request selects legacy semantics. A dual-era
+        client detects the era per server and caches the answer:
+      </p>
+      <ul>
+        <li>
+          <strong>stdio:</strong> probe with <code>server/discover</code>. A
+          <code>DiscoverResult</code> or a recognised modern error means modern;
+          any other error, or a timeout, means legacy &mdash; fall back to
+          <code>initialize</code>. Never key the fallback to one error code.
+        </li>
+        <li>
+          <strong>Streamable HTTP:</strong> send a modern request and inspect
+          the body of a <code>400</code> before falling back.
+        </li>
+      </ul>
+      <h3>Dual-era in practice</h3>
+      <p>This is not hypothetical. Claude Code 2.1.263 still opens with:</p>
+      <pre><code>{"method":"initialize","params":{"protocolVersion":"2025-11-25",
+ "capabilities":{"roots":{"listChanged":true},"elicitation":{}},
+ "clientInfo":{"name":"claude-code","version":"2.1.263"}},"id":0}</code></pre>
+      <p>
+        A modern-only server answers that with an error and the connection fails
+        — the "Legacy client &rarr; Modern server" row above. Supporting both
+        eras costs very differently by transport:
+      </p>
+      <table>
+        <tr>
+          <th>Transport</th>
+          <th>What dual-era costs</th>
+        </tr>
+        <tr>
+          <td>stdio</td>
+          <td>
+            Answer <code>initialize</code>, remember the negotiated version and
+            capabilities for the process, and reconstruct from them the
+            <code>_meta</code> a modern request would have carried. Around 70
+            lines.
+          </td>
+        </tr>
+        <tr>
+          <td>Streamable HTTP</td>
+          <td>
+            All of that <em>plus</em> the machinery this revision deleted:
+            <code>Mcp-Session-Id</code> and a session store, sticky routing, a
+            standalone <code>GET</code> SSE stream, and
+            <code>Last-Event-ID</code> replay.
+          </td>
+        </tr>
+      </table>
+      <div class="note">
+        <strong>Which is why the SDK in this repo is modern-only.</strong>
+        Bridging the eras over HTTP means reimplementing the stateful transport
+        you adopted HTTP to escape. The trade is real: today's Claude Code
+        cannot connect to it. Check what your target clients speak before
+        choosing.
+      </div>
+
+      <p>
+        A modern-only server should name its supported versions in whatever
+        error it returns to <code>initialize</code> — a legacy client has no way
+        to fall forward, and that message may be the only diagnostic its user
+        ever sees.
+      </p>
+
+      <div class="next">
+        <a href="/guides/architecture">&larr; Architecture</a
+        ><a href="/guides/primitives">Next: Primitives &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

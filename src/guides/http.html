@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>5. HTTP — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 5</span>
+      <h1>Streamable HTTP</h1>
+      <p class="lede">
+        One POST-only endpoint. No sessions, no GET stream, no resumability —
+        which means an MCP server is now just a stateless HTTP service, and you
+        already know how to run one of those.
+      </p>
+
+      <div class="note">
+        <strong>What this revision deleted.</strong>
+        <code>Mcp-Session-Id</code> and its <code>DELETE</code> teardown, the
+        standalone <code>GET</code> SSE stream, server-initiated JSON-RPC
+        requests on a stream, and <code>Last-Event-ID</code> resumability. An
+        older client using any of them gets <code>405</code>, or is ignored.
+      </div>
+
+      <h2>The shape</h2>
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 250"
+          role="img"
+          aria-label="Three HTTP interaction shapes: JSON response, SSE stream with progress, and a long-lived subscription stream"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="10"
+          >
+            <defs>
+              <marker
+                id="arh"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path
+                  d="M0,0 L7,3 L0,6 Z"
+                  fill="currentColor"
+                />
+              </marker>
+            </defs>
+            <g
+              stroke="var(--muted)"
+              stroke-opacity="0.35"
+              stroke-dasharray="3 3"
+            >
+              <line
+                x1="70"
+                y1="26"
+                x2="70"
+                y2="240"
+              />
+              <line
+                x1="540"
+                y1="26"
+                x2="540"
+                y2="240"
+              />
+            </g>
+            <text
+              x="40"
+              y="20"
+              fill="var(--client)"
+              font-size="11"
+              font-weight="700"
+            >
+              client
+            </text>
+            <text
+              x="500"
+              y="20"
+              fill="var(--server)"
+              font-size="11"
+              font-weight="700"
+            >
+              any instance
+            </text>
+
+            <text
+              x="10"
+              y="46"
+              fill="var(--muted)"
+            >
+              1
+            </text>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.75"
+              marker-end="url(#arh)"
+              fill="none"
+            >
+              <line
+                x1="70"
+                y1="52"
+                x2="534"
+                y2="52"
+              />
+              <line
+                x1="540"
+                y1="76"
+                x2="76"
+                y2="76"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="305"
+                y="46"
+              >
+                POST tools/call
+              </text>
+              <text
+                x="305"
+                y="70"
+              >
+                200 application/json — one JSON-RPC response
+              </text>
+            </g>
+
+            <text
+              x="10"
+              y="116"
+              fill="var(--muted)"
+            >
+              2
+            </text>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.75"
+              marker-end="url(#arh)"
+              fill="none"
+            >
+              <line
+                x1="70"
+                y1="122"
+                x2="534"
+                y2="122"
+              />
+              <line
+                x1="540"
+                y1="146"
+                x2="76"
+                y2="146"
+              />
+              <line
+                x1="540"
+                y1="166"
+                x2="76"
+                y2="166"
+              />
+              <line
+                x1="540"
+                y1="186"
+                x2="76"
+                y2="186"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="305"
+                y="116"
+              >
+                POST tools/call (_meta.progressToken)
+              </text>
+              <text
+                x="305"
+                y="140"
+              >
+                200 text/event-stream — notifications/progress
+              </text>
+              <text
+                x="305"
+                y="160"
+                fill="var(--muted)"
+              >
+                notifications/progress
+              </text>
+              <text
+                x="305"
+                y="180"
+              >
+                final response, then the stream closes
+              </text>
+            </g>
+
+            <text
+              x="10"
+              y="222"
+              fill="var(--muted)"
+            >
+              3
+            </text>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.75"
+              marker-end="url(#arh)"
+              fill="none"
+            >
+              <line
+                x1="70"
+                y1="228"
+                x2="534"
+                y2="228"
+              />
+              <line
+                x1="540"
+                y1="244"
+                x2="76"
+                y2="244"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="305"
+                y="222"
+              >
+                POST subscriptions/listen — stream stays open
+              </text>
+              <text
+                x="305"
+                y="238"
+                fill="var(--muted)"
+              >
+                ack, then change notifications, until either side closes
+              </text>
+            </g>
+          </g>
+        </svg>
+        <p class="cap">
+          Every message is its own POST. The server picks JSON or SSE per
+          request.
+        </p>
+      </div>
+
+      <table>
+        <tr>
+          <th>Body</th>
+          <th>Server answers</th>
+        </tr>
+        <tr>
+          <td>A request</td>
+          <td>
+            <code>200</code> with <code>application/json</code>, or
+            <code>text/event-stream</code> if it wants to stream
+          </td>
+        </tr>
+        <tr>
+          <td>A notification</td>
+          <td><code>202 Accepted</code>, no body</td>
+        </tr>
+        <tr>
+          <td>An unimplemented method</td>
+          <td>
+            <code>404</code> — with a JSON-RPC <code>-32601</code> body, so it's
+            distinguishable from a wrong URL
+          </td>
+        </tr>
+        <tr>
+          <td><code>GET</code> or <code>DELETE</code></td>
+          <td><code>405</code> — those were the session mechanics</td>
+        </tr>
+      </table>
+
+      <h2>Headers mirror the body</h2>
+      <p>
+        Selected body fields are duplicated into headers so load balancers,
+        gateways and WAFs can route without parsing JSON. All of them are
+        <strong>required</strong>.
+      </p>
+      <pre><code>POST /mcp HTTP/1.1
+Content-Type: application/json
+Accept: application/json, text/event-stream
+MCP-Protocol-Version: 2026-07-28
+Mcp-Method: tools/call
+Mcp-Name: roll_dice
+Mcp-Param-Sides: 20
+
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+  "params": { "name": "roll_dice", "arguments": { "count": 3, "sides": 20 },
+              "_meta": { "io.modelcontextprotocol/protocolVersion": "2026-07-28", ... } } }</code></pre>
+
+      <table>
+        <tr>
+          <th>Header</th>
+          <th>Mirrors</th>
+          <th>Required for</th>
+        </tr>
+        <tr>
+          <td><code>MCP-Protocol-Version</code></td>
+          <td><code>_meta</code> protocol version</td>
+          <td>every POST</td>
+        </tr>
+        <tr>
+          <td><code>Mcp-Method</code></td>
+          <td><code>method</code></td>
+          <td>every POST</td>
+        </tr>
+        <tr>
+          <td><code>Mcp-Name</code></td>
+          <td><code>params.name</code> or <code>params.uri</code></td>
+          <td>
+            <code>tools/call</code>, <code>resources/read</code>,
+            <code>prompts/get</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>Mcp-Param-{Name}</code></td>
+          <td>a tool argument marked <code>x-mcp-header</code></td>
+          <td>whenever that argument is present</td>
+        </tr>
+      </table>
+
+      <div class="note">
+        <strong>Why the server must validate the duplication.</strong> If a
+        gateway routes on the header and the server executes on the body, a
+        mismatch is two components disagreeing about what the request
+        <em>is</em> — a real privilege-escalation shape. So any mismatch, or a
+        missing required header, is <code>400</code> with
+        <code>-32020 HeaderMismatch</code>. Never reconcile; reject.
+      </div>
+
+      <p>
+        A client that omits a required <code>Mcp-Param-*</code> while sending
+        the value in the body is non-conforming and must be rejected too. Values
+        that don't fit in an ASCII header arrive Base64-wrapped, and the server
+        decodes before comparing:
+      </p>
+      <pre><code>Mcp-Name: =?base64?cm9sbF9kaWNl?=      // decodes to roll_dice</code></pre>
+      <p>
+        Integers compare numerically, so
+        <code>Mcp-Param-Sides: 20</code> matches a body value of
+        <code>20</code>.
+      </p>
+
+      <h2>Declaring a mirrored parameter</h2>
+      <pre><code>sides: {
+  type: "integer",
+  minimum: 2,
+  maximum: 1000,
+  "x-mcp-header": "Sides",   // becomes Mcp-Param-Sides
+}</code></pre>
+      <p>
+        Only primitives (string, integer, boolean — not <code>number</code>),
+        only properties reachable through a plain chain of
+        <code>properties</code> keys, and never anything sensitive: header
+        values are visible to every intermediary on the path.
+      </p>
+
+      <h2>Streaming</h2>
+      <p>Two streams exist, and both are just a response body.</p>
+
+      <h3>Per-request: progress</h3>
+      <p>
+        If the client puts a <code>progressToken</code> in <code>_meta</code>,
+        the server may answer with SSE: notifications relating to
+        <em>this request</em>, then the final response, then close.
+      </p>
+      <pre><code>data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":1,"total":3,"message":"round 1 of 3"}}
+
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"p1","progress":2,"total":3,"message":"round 2 of 3"}}
+
+data: {"jsonrpc":"2.0","id":1,"result":{"resultType":"complete","content":[{"type":"text","text":"Round 3 won with 20"}]}}</code></pre>
+      <p>
+        In our SDK the tool handler just calls
+        <code>context.progress(...)</code>; on a non-streaming transport, or
+        when the client didn't ask, it's a no-op.
+      </p>
+
+      <h3>Long-lived: subscriptions/listen</h3>
+      <p>
+        The client opts into notification types; the response stream stays open
+        and carries only those, each tagged with
+        <code>io.modelcontextprotocol/subscriptionId</code>.
+      </p>
+      <pre><code>data: {"jsonrpc":"2.0","method":"notifications/subscriptions/acknowledged","params":{"_meta":{"io.modelcontextprotocol/subscriptionId":"0589e605-..."}}}
+
+data: {"jsonrpc":"2.0","method":"notifications/tools/list_changed","params":{"_meta":{"io.modelcontextprotocol/subscriptionId":"0589e605-..."}}}</code></pre>
+      <p>
+        Request-scoped notifications never appear here. Emit an SSE comment line
+        (<code>:\r\n</code>) periodically or intermediaries will drop an idle
+        stream.
+      </p>
+
+      <div class="note">
+        <strong>Closing the stream is the cancellation signal.</strong> Each
+        request owns its stream, so a disconnect is unambiguous — there is no
+        <code>notifications/cancelled</code> on HTTP. Stop the work and send
+        nothing more. And since streams aren't resumable, a broken one means the
+        client re-issues the request with a new id; don't try to replay.
+      </div>
+
+      <h2>Security</h2>
+      <ul>
+        <li>
+          <strong>Validate <code>Origin</code>.</strong> A browser cannot forge
+          it, so an unexpected value means a page is talking to your server —
+          respond <code>403</code>. This is the DNS-rebinding defence.
+        </li>
+        <li>
+          <strong>Bind to <code>127.0.0.1</code></strong> for local servers, not
+          <code>0.0.0.0</code>.
+        </li>
+        <li>
+          <strong>Authenticate.</strong> Credentials are per-request input, not
+          connection state — which is also what lets
+          <code>tools/list</code> legitimately vary by the caller's scopes.
+        </li>
+        <li>
+          <strong>Send <code>X-Accel-Buffering: no</code></strong> on SSE or
+          nginx will batch your events.
+        </li>
+        <li>
+          Ignore <code>Mcp-Session-Id</code> and <code>Last-Event-ID</code> if
+          an old client sends them. Don't mint session ids.
+        </li>
+      </ul>
+
+      <h2>Authorization</h2>
+      <p>
+        Optional in MCP, and the moment your endpoint is reachable from a
+        network it stops being optional in practice. An MCP server never issues
+        tokens — it is an OAuth 2.1 <em>resource server</em>: it validates what
+        a client presents, and tells an unauthenticated one where to go and get
+        one.
+      </p>
+      <pre><code>// 401 — no credential at all
+WWW-Authenticate: Bearer resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp",
+                         scope="dice:roll"
+
+// 403 — authenticated, but the token lacks a scope this operation needs
+WWW-Authenticate: Bearer error="insufficient_scope", scope="files:write",
+                         resource_metadata="https://mcp.example.com/.well-known/oauth-protected-resource/mcp"</code></pre>
+      <p>
+        The <code>resource_metadata</code> pointer is the part clients actually
+        need: it is how they discover which authorization server to use. Servers
+        <strong>MUST</strong> implement that document (RFC 9728), naming at
+        least one issuer:
+      </p>
+      <pre><code>GET /.well-known/oauth-protected-resource/mcp
+
+{
+  "resource": "https://mcp.example.com/mcp",
+  "authorization_servers": ["https://auth.example.com"],
+  "bearer_methods_supported": ["header"],
+  "scopes_supported": ["dice:roll"]
+}</code></pre>
+      <p>
+        The path is derived from the canonical resource URI: an endpoint at
+        <code>/mcp</code> puts its metadata at
+        <code>/.well-known/oauth-protected-resource/mcp</code>, and a client
+        falls back to the root form if that 404s.
+      </p>
+
+      <div class="note">
+        <strong>Audience binding is the rule that matters.</strong> Validate
+        that each token was issued for <em>this</em> server. Accepting one
+        minted for another service — or forwarding a token onwards — is the
+        confused-deputy attack the spec explicitly forbids:
+        <em>"MCP servers MUST NOT accept or transit any other tokens."</em>
+      </div>
+
+      <p>Three smaller rules worth knowing:</p>
+      <ul>
+        <li>
+          <strong>401 vs 403.</strong> Missing or invalid token is 401; a valid
+          token without the scope is 403 with
+          <code>error="insufficient_scope"</code>.
+        </li>
+        <li>
+          <strong
+            >Challenge with every scope the operation needs, at once.</strong
+          >
+          Returning them one at a time forces repeated authorization round-trips
+          for a single call.
+        </li>
+        <li>
+          <strong>Dynamic Client Registration is deprecated</strong> in this
+          revision, in favour of Client ID Metadata Documents. It remains only
+          for authorization servers that do not support them.
+        </li>
+      </ul>
+
+      <p>In this SDK that is one option on the server:</p>
+      <pre><code>new McpServer(info, {
+  http: { auth: { resource, authorizationServers, verify } },
+})</code></pre>
+      <p>
+        The verified caller then reaches handlers as
+        <code>context.identity</code>, and <code>context.hasScope()</code> lets
+        a single tool require more than the endpoint does. Because credentials
+        are per-request input rather than connection state, every call
+        re-authorizes — including a call against a handle you minted a request
+        earlier.
+      </p>
+
+      <h2>What statelessness bought you</h2>
+      <p>
+        This is the payoff of everything in
+        <a href="/guides/requests">Chapter 2</a>. Because no request depends on
+        a previous one:
+      </p>
+      <ul>
+        <li>
+          No session store, no Redis, no sticky sessions — round-robin across
+          instances is correct.
+        </li>
+        <li>
+          An instance can be killed mid-flight; the client retries with a new
+          id.
+        </li>
+        <li>
+          Responses are ordinary HTTP, so ordinary caching applies — that's what
+          <code>ttlMs</code> and <code>cacheScope</code> are for.
+        </li>
+        <li>
+          The transport is the only thing that changes: in our SDK,
+          <code>McpServer</code> never mentions HTTP at all —
+          <code>handle()</code> is message-in, message-out, and the transport is
+          the only thing that knows about requests.
+        </li>
+      </ul>
+      <pre><code>// src/server.ts — the MCP endpoint is one route on an ordinary Bun server
+import { mcpServer } from "./mcp/server"
+
+Bun.serve({
+  hostname: "127.0.0.1",
+  port: 3001,
+  routes: {
+    "/health": () =&gt; new Response("OK"),
+    // Every method, not just POST: the transport answers GET and DELETE with 405.
+    "/mcp": mcpServer.fetch,
+    // RFC 9728 metadata, present only when authorization is configured.
+    ...mcpServer.wellKnownRoutes(),
+  },
+})</code></pre>
+      <p>
+        That is the entire integration: one route on the same server that serves
+        these pages. Try it with <code>bun dev</code>, then POST to
+        <code>http://127.0.0.1:3001/mcp</code> with the headers above.
+      </p>
+
+      <div class="next">
+        <a href="/guides/build">&larr; Build one</a
+        ><a href="/guides/debug">Next: Debug &amp; ship &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

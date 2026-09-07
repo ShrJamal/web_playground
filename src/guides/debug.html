@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>6. Debug &amp; ship — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 6</span>
+      <h1>Debug and ship</h1>
+      <p class="lede">
+        Most MCP bugs are one of six things. Here they are, in the order you'll
+        hit them.
+      </p>
+
+      <h2>The classic failures</h2>
+      <table>
+        <tr>
+          <th>Symptom</th>
+          <th>Cause</th>
+          <th>Fix</th>
+        </tr>
+        <tr>
+          <td>Client reports parse errors, or the connection dies instantly</td>
+          <td>
+            You wrote to <strong>stdout</strong> — a <code>console.log</code>, a
+            banner, a dependency's startup message
+          </td>
+          <td>
+            stdout is the protocol channel. Log to <code>stderr</code> only.
+          </td>
+        </tr>
+        <tr>
+          <td>Works with small payloads, breaks with large ones</td>
+          <td>Treating each stdin chunk as one message</td>
+          <td>Buffer and split on newlines (Chapter 4, step 1).</td>
+        </tr>
+        <tr>
+          <td>Every request rejected with <code>-32602</code></td>
+          <td>
+            Client isn't sending <code>_meta</code>, or the server forgot to
+            expect it
+          </td>
+          <td>
+            Both <code>protocolVersion</code> and
+            <code>clientCapabilities</code> are required on every request.
+          </td>
+        </tr>
+        <tr>
+          <td>Client errors on your results</td>
+          <td>
+            Missing <code>resultType</code>, or missing <code>ttlMs</code>/<code
+              >cacheScope</code
+            >
+            on a list result
+          </td>
+          <td>
+            Stamp <code>resultType: "complete"</code> centrally; add the cache
+            fields to every list result.
+          </td>
+        </tr>
+        <tr>
+          <td>Second tool call doesn't remember the first</td>
+          <td>Assuming a session — the protocol has none</td>
+          <td>Return an explicit handle and take it as a tool argument.</td>
+        </tr>
+        <tr>
+          <td>The model gives up after one failed call</td>
+          <td>Tool failures returned as JSON-RPC errors</td>
+          <td>
+            Return <code>isError: true</code> with a message the model can act
+            on.
+          </td>
+        </tr>
+      </table>
+
+      <div class="note">
+        <strong>Era mismatch looks like a broken server.</strong> A legacy
+        client sending <code>initialize</code> to a modern server, or a modern
+        client sending <code>_meta</code> to a legacy one, fails in confusing
+        ways — silence, an unknown-method error, or worse, a legacy server
+        happily processing the request under legacy semantics. Check which
+        revision each side speaks before debugging anything else.
+      </div>
+
+      <h2>Logging</h2>
+      <p>
+        Use <code>console.error()</code>. The protocol's own logging feature is
+        deprecated as of <code>2026-07-28</code>; <code>stderr</code> (or
+        OpenTelemetry, with trace context propagated in <code>_meta</code>) is
+        the recommended path. Clients must not treat <code>stderr</code> output
+        as an error signal.
+      </p>
+
+      <h2>The Inspector</h2>
+      <p>
+        The official interactive debugger. Lists your tools, lets you call them
+        with arbitrary arguments, and shows the raw traffic.
+      </p>
+      <pre><code>npx @modelcontextprotocol/inspector       # then point it at http://127.0.0.1:3001/mcp</code></pre>
+      <p>
+        Use it before wiring the server into a real client — it isolates your
+        bugs from the host's.
+      </p>
+
+      <h2>Description quality is the whole game</h2>
+      <p>
+        The model chooses tools from names, descriptions and schemas alone. It
+        cannot read your source.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <h3>Weak</h3>
+          <p>
+            <code>"description": "Gets data"</code> — the model can't tell when
+            to use it, what it returns, or what the arguments mean.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Strong</h3>
+          <p>
+            <code
+              >"Search open GitHub issues in a repo by keyword. Returns at most
+              20 matches, newest first. Use for questions about bug reports; use
+              get_issue for a known number."</code
+            >
+          </p>
+        </div>
+      </div>
+      <p>
+        Say what it does, when to use it, when <em>not</em> to, and what comes
+        back. Describe every parameter, constrain with <code>enum</code> and
+        <code>default</code>, and document handle lifetimes ("baskets expire
+        after 24 hours") in the creating tool's description.
+      </p>
+
+      <h2>Security checklist</h2>
+      <ul>
+        <li>
+          <strong>Validate every input.</strong> Arguments come from a model
+          reacting to text that may be attacker-controlled. Treat them as
+          untrusted user input.
+        </li>
+        <li>
+          <strong>Treat <code>requestState</code> as hostile.</strong> It
+          round-trips through the client. Integrity-protect it, bind it to the
+          principal, expire it, and reject what fails verification.
+        </li>
+        <li>
+          <strong>Handles are names, not capabilities.</strong> Re-authorize on
+          every call — a stateless protocol means the previous call proves
+          nothing.
+        </li>
+        <li>
+          <strong>Confine paths.</strong> Resolve and check against an allowed
+          root; reject <code>..</code> traversal explicitly.
+        </li>
+        <li>
+          <strong>Never return secrets</strong> in tool output — it goes
+          straight into the model's context. Don't mark sensitive parameters
+          with <code>x-mcp-header</code> either; header values are visible to
+          intermediaries.
+        </li>
+        <li>
+          <strong>Keep tools narrow.</strong> A
+          <code>run_shell_command</code> tool hands the model your whole
+          machine.
+        </li>
+        <li>
+          <strong>Don't dereference network <code>$ref</code>s</strong> in JSON
+          Schema by default, and bound schema depth — a malicious schema is a
+          DoS vector.
+        </li>
+        <li>
+          <strong>For HTTP transports:</strong> validate the
+          <code>Origin</code> header (DNS rebinding), bind local servers to
+          <code>127.0.0.1</code>, require auth. A token issued for another
+          service must never be accepted or forwarded.
+        </li>
+        <li>
+          <strong>Rate-limit and time-box</strong> anything hitting an external
+          API; a model in a retry loop is a load generator.
+        </li>
+      </ul>
+
+      <h2>Shipping</h2>
+      <ol class="steps">
+        <li>
+          Advertise every revision you support in <code>server/discover</code>,
+          and decide deliberately whether to be modern-only or dual-era.
+        </li>
+        <li>
+          Return tools in a deterministic order, with honest
+          <code>ttlMs</code> — it's what keeps clients from polling you.
+        </li>
+        <li>
+          Take config from environment variables, never hardcoded credentials.
+        </li>
+        <li>
+          Exit promptly when stdin closes; that's the only portable shutdown
+          signal. Expect clients to restart you and retry — in-flight requests
+          are simply lost, and that's fine now.
+        </li>
+        <li>
+          Deploy it behind TLS with real token validation; document the exact
+          connection details — URL, required scopes, and which protocol revision
+          you speak.
+        </li>
+        <li>
+          Version your tool names. Renaming a tool breaks every prompt that
+          mentions it.
+        </li>
+      </ol>
+
+      <h2>Where to go next</h2>
+      <ul>
+        <li>
+          <a href="https://modelcontextprotocol.io/specification/latest"
+            >modelcontextprotocol.io/specification/latest</a
+          >
+          — always check the revision date at the top
+        </li>
+        <li>
+          <a
+            href="https://modelcontextprotocol.io/specification/2026-07-28/changelog"
+            >The 2026-07-28 changelog</a
+          >
+          — the full list of what the stateless revision changed
+        </li>
+        <li>
+          <a href="https://github.com/modelcontextprotocol/servers"
+            >github.com/modelcontextprotocol/servers</a
+          >
+          — reference servers worth reading
+        </li>
+        <li>
+          Try adding <code>resources</code> to the dice server, or make
+          <code>roll_for_me</code>'s <code>requestState</code> a real
+          HMAC-signed blob.
+        </li>
+      </ul>
+
+      <div class="next">
+        <a href="/guides/build">&larr; Build one</a
+        ><a href="/guides/faq">Next: FAQ &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

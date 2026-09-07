@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>1. Architecture — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 1</span>
+      <h1>Host, client, server</h1>
+      <p class="lede">
+        Three words for what looks like two boxes. The distinction still matters
+        the moment you have more than one server connected — even though, since
+        <code>2026-07-28</code>, none of them holds a session.
+      </p>
+
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 280"
+          role="img"
+          aria-label="A host process containing three clients, each connected to one server, which reach external systems"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="11"
+          >
+            <rect
+              x="8"
+              y="8"
+              width="250"
+              height="264"
+              rx="12"
+              fill="none"
+              stroke="var(--host)"
+              stroke-width="1.5"
+            />
+            <text
+              x="20"
+              y="30"
+              fill="var(--host)"
+              font-size="12"
+              font-weight="700"
+            >
+              HOST (the AI app)
+            </text>
+            <text
+              x="20"
+              y="48"
+              fill="var(--muted)"
+              font-size="10"
+            >
+              Claude Code, an IDE, your agent
+            </text>
+
+            <g
+              fill="none"
+              stroke="var(--client)"
+              stroke-width="1.5"
+            >
+              <rect
+                x="28"
+                y="66"
+                width="150"
+                height="42"
+                rx="8"
+              />
+              <rect
+                x="28"
+                y="128"
+                width="150"
+                height="42"
+                rx="8"
+              />
+              <rect
+                x="28"
+                y="190"
+                width="150"
+                height="42"
+                rx="8"
+              />
+            </g>
+            <g fill="var(--client)">
+              <text
+                x="42"
+                y="92"
+              >
+                client A
+              </text>
+              <text
+                x="42"
+                y="154"
+              >
+                client B
+              </text>
+              <text
+                x="42"
+                y="216"
+              >
+                client C
+              </text>
+            </g>
+
+            <g
+              fill="none"
+              stroke="var(--server)"
+              stroke-width="1.5"
+            >
+              <rect
+                x="330"
+                y="66"
+                width="160"
+                height="42"
+                rx="8"
+              />
+              <rect
+                x="330"
+                y="128"
+                width="160"
+                height="42"
+                rx="8"
+              />
+              <rect
+                x="330"
+                y="190"
+                width="160"
+                height="42"
+                rx="8"
+              />
+            </g>
+            <g fill="var(--server)">
+              <text
+                x="344"
+                y="86"
+              >
+                filesystem server
+              </text>
+              <text
+                x="344"
+                y="148"
+              >
+                github server
+              </text>
+              <text
+                x="344"
+                y="210"
+              >
+                postgres server
+              </text>
+            </g>
+            <g
+              fill="var(--muted)"
+              font-size="9"
+            >
+              <text
+                x="344"
+                y="100"
+              >
+                stdio
+              </text>
+              <text
+                x="344"
+                y="162"
+              >
+                streamable http
+              </text>
+              <text
+                x="344"
+                y="224"
+              >
+                stdio
+              </text>
+            </g>
+
+            <g
+              stroke="var(--muted)"
+              stroke-width="1.5"
+              stroke-dasharray="4 3"
+            >
+              <line
+                x1="178"
+                y1="87"
+                x2="330"
+                y2="87"
+              />
+              <line
+                x1="178"
+                y1="149"
+                x2="330"
+                y2="149"
+              />
+              <line
+                x1="178"
+                y1="211"
+                x2="330"
+                y2="211"
+              />
+            </g>
+            <text
+              x="212"
+              y="80"
+              fill="var(--muted)"
+              font-size="9"
+            >
+              1:1
+            </text>
+
+            <g
+              stroke="var(--muted)"
+              stroke-width="1"
+              stroke-opacity="0.6"
+            >
+              <line
+                x1="490"
+                y1="87"
+                x2="560"
+                y2="87"
+              />
+              <line
+                x1="490"
+                y1="149"
+                x2="560"
+                y2="149"
+              />
+              <line
+                x1="490"
+                y1="211"
+                x2="560"
+                y2="211"
+              />
+            </g>
+            <g
+              fill="var(--muted)"
+              font-size="10"
+            >
+              <text
+                x="524"
+                y="82"
+              >
+                disk
+              </text>
+              <text
+                x="524"
+                y="144"
+              >
+                API
+              </text>
+              <text
+                x="524"
+                y="206"
+              >
+                DB
+              </text>
+            </g>
+          </g>
+        </svg>
+        <p class="cap">
+          One host, many clients, one server per client — a connection, not a
+          session.
+        </p>
+      </div>
+
+      <h2>The three roles</h2>
+      <table>
+        <tr>
+          <th>Role</th>
+          <th>What it is</th>
+          <th>Who writes it</th>
+        </tr>
+        <tr>
+          <td><strong>Host</strong></td>
+          <td>
+            The application the user actually sits in. It owns the model, the
+            conversation, and the permission decisions.
+          </td>
+          <td>Claude Code, Claude Desktop, Cursor, your own agent</td>
+        </tr>
+        <tr>
+          <td><strong>Client</strong></td>
+          <td>
+            A connector object inside the host. Talks to one server, and is
+            where the transport, the auth, and the per-request
+            <code>_meta</code> get attached.
+          </td>
+          <td>Almost always the host's SDK, not you</td>
+        </tr>
+        <tr>
+          <td><strong>Server</strong></td>
+          <td>
+            A separate program exposing capabilities. Knows nothing about the
+            model or the conversation, and nothing about your previous request.
+          </td>
+          <td><strong>You</strong>, most of the time</td>
+        </tr>
+      </table>
+
+      <div class="note">
+        <strong>Why the client exists as its own concept.</strong> Isolation. A
+        server can't see the other servers a host is connected to and can't
+        reach into the conversation — that's a security boundary, not
+        bookkeeping. What a client is <em>not</em>, as of
+        <code>2026-07-28</code>, is a session holder: an open stdio process is
+        not a conversation, and a client may interleave unrelated requests on
+        it.
+      </div>
+
+      <h2 id="who-calls-what">Who calls what</h2>
+      <p>
+        The single most common confusion, worth settling before anything else:
+        <strong>the model never emits JSON-RPC.</strong> It cannot call a
+        method. It produces text and tool-use blocks; the <em>client</em> is
+        what turns one of those into a request on the wire.
+      </p>
+
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 250"
+          role="img"
+          aria-label="The model proposes a tool call, the client sends it, the server answers"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="10"
+          >
+            <defs>
+              <marker
+                id="arw"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path
+                  d="M0,0 L7,3 L0,6 Z"
+                  fill="currentColor"
+                />
+              </marker>
+            </defs>
+            <g
+              stroke="var(--muted)"
+              stroke-opacity="0.35"
+              stroke-dasharray="3 3"
+            >
+              <line
+                x1="70"
+                y1="34"
+                x2="70"
+                y2="240"
+              />
+              <line
+                x1="300"
+                y1="34"
+                x2="300"
+                y2="240"
+              />
+              <line
+                x1="540"
+                y1="34"
+                x2="540"
+                y2="240"
+              />
+            </g>
+            <text
+              x="42"
+              y="26"
+              fill="var(--host)"
+              font-size="11"
+              font-weight="700"
+            >
+              model
+            </text>
+            <text
+              x="272"
+              y="26"
+              fill="var(--client)"
+              font-size="11"
+              font-weight="700"
+            >
+              client
+            </text>
+            <text
+              x="514"
+              y="26"
+              fill="var(--server)"
+              font-size="11"
+              font-weight="700"
+            >
+              server
+            </text>
+
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.75"
+              marker-end="url(#arw)"
+              fill="none"
+            >
+              <line
+                x1="300"
+                y1="60"
+                x2="534"
+                y2="60"
+              />
+              <line
+                x1="540"
+                y1="88"
+                x2="306"
+                y2="88"
+              />
+              <line
+                x1="300"
+                y1="124"
+                x2="76"
+                y2="124"
+              />
+              <line
+                x1="70"
+                y1="176"
+                x2="294"
+                y2="176"
+              />
+              <line
+                x1="300"
+                y1="212"
+                x2="534"
+                y2="212"
+              />
+              <line
+                x1="540"
+                y1="240"
+                x2="306"
+                y2="240"
+              />
+            </g>
+            <g fill="currentColor">
+              <text
+                x="312"
+                y="54"
+              >
+                tools/list
+              </text>
+              <text
+                x="312"
+                y="82"
+              >
+                definitions
+              </text>
+              <text
+                x="88"
+                y="118"
+              >
+                here are the tools you may use
+              </text>
+              <text
+                x="88"
+                y="170"
+              >
+                use roll_dice { count: 3, sides: 20 }
+              </text>
+              <text
+                x="312"
+                y="206"
+              >
+                tools/call — the client translates it
+              </text>
+              <text
+                x="312"
+                y="234"
+              >
+                result
+              </text>
+            </g>
+            <g
+              fill="var(--muted)"
+              font-size="9"
+            >
+              <text
+                x="88"
+                y="138"
+              >
+                as prompt context, not a protocol message
+              </text>
+              <text
+                x="88"
+                y="190"
+              >
+                a tool-use block, not a protocol message
+              </text>
+            </g>
+          </g>
+        </svg>
+        <p class="cap">
+          Only the middle column ever speaks MCP. The left column only ever
+          proposes.
+        </p>
+      </div>
+
+      <p>So of the methods MCP defines, exactly one is model-driven:</p>
+
+      <table>
+        <tr>
+          <th>Method</th>
+          <th>Who decides</th>
+          <th>When</th>
+        </tr>
+        <tr>
+          <td><code>server/discover</code></td>
+          <td>Client</td>
+          <td>At connection setup — and it is optional</td>
+        </tr>
+        <tr>
+          <td><code>tools/list</code></td>
+          <td>Client</td>
+          <td>
+            Setup, then when <code>ttlMs</code> expires or a
+            <code>list_changed</code> notification arrives
+          </td>
+        </tr>
+        <tr>
+          <td><code>resources/list</code></td>
+          <td>Client</td>
+          <td>Same, to populate an attachment picker</td>
+        </tr>
+        <tr>
+          <td><code>prompts/list</code></td>
+          <td>Client</td>
+          <td>Same, to populate a slash-command menu</td>
+        </tr>
+        <tr>
+          <td>
+            <strong><code>tools/call</code></strong>
+          </td>
+          <td><strong>Model</strong> (client sends it)</td>
+          <td>When the model emits a tool-use block mid-turn</td>
+        </tr>
+        <tr>
+          <td><code>resources/read</code></td>
+          <td>Client or user</td>
+          <td>A person attaches a file, or app policy pulls one in</td>
+        </tr>
+        <tr>
+          <td><code>prompts/get</code></td>
+          <td>User</td>
+          <td>A person picks the slash command</td>
+        </tr>
+      </table>
+
+      <p>
+        Concretely, with Claude Code: <strong>Claude Code is the host</strong>,
+        the client is an object inside it (one per configured server), and your
+        server process is the server. Claude Code spawns that subprocess at
+        startup and its client immediately discovers and lists — before you type
+        anything.
+        <a href="/guides/faq#claude-code">The full startup sequence &rarr;</a>
+      </p>
+      <p>The order in a real session:</p>
+      <pre><code>client starts up
+  -&gt; server/discover     (client, optional)
+  -&gt; tools/list          (client — it needs the schemas to build the prompt)
+  -&gt; prompts/list        (client — populates the slash-command menu)
+     ... tool definitions enter the model's context as available tools ...
+
+user types something
+     model emits: use roll_dice { count: 3, sides: 20 }
+  -&gt; tools/call          (client translates that into JSON-RPC)
+  &lt;- result
+     ... the result text goes back into the model's context ...
+
+user picks /explain-roll
+  -&gt; prompts/get         (client — no model involvement at all)</code></pre>
+
+      <div class="note">
+        <strong>The consequence for you as a server author.</strong> By the time
+        the model sees anything, listing has already happened — it chooses
+        <em>from</em> a list and never asks for one. So
+        <code>tools/list</code> output is prompt input, and your tool
+        <code>description</code> is prompt engineering. Metadata the
+        <em>client</em> consumes — <code>instructions</code>, resource titles,
+        prompt descriptions — may never reach the model at all.
+      </div>
+
+      <h2>Transports</h2>
+      <p>
+        Two are defined. Both carry the same JSON-RPC messages; only the pipe
+        differs.
+      </p>
+
+      <div class="grid">
+        <div class="card">
+          <h3>stdio</h3>
+          <p>
+            The host spawns your server as a subprocess and speaks over
+            stdin/stdout, one JSON message per line, no embedded newlines.
+            Local, zero network, zero auth. All metadata rides inline in
+            <code>_meta</code> — there is no header layer. Start here.
+          </p>
+        </div>
+        <div class="card">
+          <h3>Streamable HTTP</h3>
+          <p>
+            One <code>/mcp</code> endpoint taking POSTs; responses come back as
+            JSON or an SSE stream. No <code>Mcp-Session-Id</code>, no sticky
+            routing, no stream resumability — any instance can serve any
+            request. Requires <code>MCP-Protocol-Version</code>,
+            <code>Mcp-Method</code> and <code>Mcp-Name</code> headers, plus auth
+            and origin checks.
+          </p>
+        </div>
+      </div>
+
+      <div class="note">
+        <strong>Rule of thumb.</strong> stdio for anything touching the user's
+        own machine. Streamable HTTP when the server is a shared service other
+        people connect to — and because it is stateless now, scaling it is
+        ordinary horizontal scaling. (The old HTTP+SSE transport is deprecated;
+        don't build on it.)
+      </div>
+
+      <h2>What each side may assume</h2>
+      <ul>
+        <li>
+          A server may <strong>not</strong> assume the model will call its
+          tools. It only offers.
+        </li>
+        <li>
+          A server may <strong>not</strong> infer anything from earlier requests
+          on the same connection — not the version, not the capabilities, not
+          the caller. Each request restates them.
+        </li>
+        <li>
+          A server may <strong>not</strong> read the conversation, and may
+          <strong>not</strong> initiate requests. If it needs something back, it
+          returns <code>resultType: "input_required"</code> and waits for the
+          client to retry.
+        </li>
+        <li>
+          A host must <strong>not</strong> auto-approve destructive tools.
+          Consent lives in the host, which is why servers stay simple.
+        </li>
+      </ul>
+
+      <div class="next">
+        <a href="/guides">&larr; Overview</a
+        ><a href="/guides/requests">Next: Requests &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

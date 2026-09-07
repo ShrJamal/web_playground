@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>4. Build one — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 4</span>
+      <h1>Build a server from scratch</h1>
+      <p class="lede">
+        No SDK, no dependencies, speaking <code>2026-07-28</code> over
+        Streamable HTTP. A few dozen lines get you a working MCP endpoint; then
+        we fold the protocol parts into a reusable SDK so adding a tool is four
+        lines.
+      </p>
+
+      <div class="note">
+        <strong>Why no SDK first?</strong> The official SDKs hide the
+        <code>_meta</code> validation, the header mirroring and the error
+        mapping — exactly the material you are trying to learn. Build it once by
+        hand, then use the SDK forever after.
+      </div>
+
+      <h2>Step 1 &mdash; one POST endpoint</h2>
+      <p>
+        That is the whole transport surface. <code>GET</code> and
+        <code>DELETE</code> were the session mechanics of older revisions, so
+        answering <code>405</code> is how an old client learns they are gone.
+      </p>
+      <pre><code>Bun.serve({
+  hostname: "127.0.0.1",
+  port: 3001,
+  routes: {
+    "/mcp": async (req) =&gt; {
+      if (req.method !== "POST") return new Response("Method not allowed", { status: 405 })
+
+      // A browser cannot forge Origin, so an unexpected one means a web page
+      // is talking to us — the DNS-rebinding defence.
+      const origin = req.headers.get("origin")
+      if (origin !== null &amp;&amp; !ALLOWED.includes(origin)) return json(403, ...)
+
+      const msg = await req.json()
+      return handle(msg)
+    },
+  },
+})</code></pre>
+
+      <h2>Step 2 &mdash; validate _meta on every request</h2>
+      <p>
+        There is no handshake to remember, so this runs every time. Missing
+        fields are <code>-32602</code>; a version you do not speak is
+        <code>-32022</code> <em>carrying the list you do</em>.
+      </p>
+      <pre><code>const VERSION_KEY      = "io.modelcontextprotocol/protocolVersion"
+const CAPABILITIES_KEY = "io.modelcontextprotocol/clientCapabilities"
+
+function requireProtocolMeta(meta) {
+  const version = meta?.[VERSION_KEY]
+  if (typeof version !== "string" || meta?.[CAPABILITIES_KEY] === undefined) {
+    throw new RpcError(-32602, `_meta must carry ${VERSION_KEY} and ${CAPABILITIES_KEY}`)
+  }
+  if (version !== PROTOCOL_VERSION) {
+    throw new RpcError(-32022, "Unsupported protocol version", {
+      supported: [PROTOCOL_VERSION],
+      requested: version,
+    })
+  }
+  return { version, capabilities: meta[CAPABILITIES_KEY] }
+}</code></pre>
+
+      <h2>Step 3 &mdash; check the headers against the body</h2>
+      <p>
+        Streamable HTTP mirrors body fields into headers so gateways can route
+        without parsing JSON. If the two disagree, one of them is lying — reject
+        with <code>-32020</code> rather than picking a side.
+      </p>
+      <pre><code>if (headers.get("mcp-method") !== msg.method) return mismatch("Mcp-Method")
+if (NAMED.has(msg.method) &amp;&amp; decode(headers.get("mcp-name")) !== msg.params?.name) ...</code></pre>
+      <p>
+        Values that cannot ride in an ASCII header arrive Base64-wrapped as
+        <code>=?base64?…?=</code>, so decode before comparing. Integers compare
+        numerically.
+      </p>
+
+      <h2>Step 4 &mdash; dispatch</h2>
+      <p>
+        <code>server/discover</code> is mandatory. The
+        <code>initialize</code> case is a courtesy: a legacy client cannot fall
+        forward, so that message may be the only diagnostic its user ever sees.
+      </p>
+      <pre><code>function dispatch(msg) {
+  if (msg.method === "initialize") {
+    throw new RpcError(-32601,
+      `This server is stateless and has no initialize handshake. Supported versions: ${PROTOCOL_VERSION}`)
+  }
+
+  const meta = requireProtocolMeta(msg.params?._meta)
+
+  switch (msg.method) {
+    case "server/discover":
+      return { supportedVersions: [PROTOCOL_VERSION], capabilities: { tools: {} },
+               ttlMs: 3_600_000, cacheScope: "public" }
+    case "tools/list":
+      return { tools: TOOLS, ttlMs: 300_000, cacheScope: "public" }
+    case "tools/call":
+      return callTool(msg.params, meta)
+    default:
+      throw new RpcError(-32601, `Method not found: ${msg.method}`)
+  }
+}</code></pre>
+      <p>
+        Every result also needs <code>resultType</code>, and should identify the
+        server — stamp both centrally:
+      </p>
+      <pre><code>result: { resultType: "complete", ...body, _meta: { [SERVER_INFO_KEY]: INFO } }</code></pre>
+
+      <h2>Step 5 &mdash; the tool</h2>
+      <p>
+        Note the two failure styles: an <em>unknown tool</em> is a protocol
+        error, but <em>bad arguments the model could fix</em> come back as a
+        result with <code>isError</code> so it can read the message and retry.
+      </p>
+      <pre><code>function rollDice(count, sides) {
+  if (!Number.isInteger(count) || count &lt; 1 || count &gt; 100) {
+    return { content: [{ type: "text", text: "count must be an integer between 1 and 100" }], isError: true }
+  }
+
+  const rolls = Array.from({ length: count }, () =&gt; 1 + Math.floor(Math.random() * sides))
+  const total = rolls.reduce((sum, roll) =&gt; sum + roll, 0)
+  return {
+    content: [{ type: "text", text: `Rolled ${count}d${sides}: ${rolls.join(", ")} (total ${total})` }],
+    structuredContent: { rolls, total },
+  }
+}</code></pre>
+
+      <h2>Step 6 &mdash; drive it with curl</h2>
+      <pre><code>curl -sS http://127.0.0.1:3001/mcp \
+  -H 'content-type: application/json' \
+  -H 'accept: application/json, text/event-stream' \
+  -H 'mcp-protocol-version: 2026-07-28' \
+  -H 'mcp-method: tools/list' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{"_meta":{
+       "io.modelcontextprotocol/protocolVersion":"2026-07-28",
+       "io.modelcontextprotocol/clientCapabilities":{}}}}'</code></pre>
+      <p>
+        Send a stale version and you should get <code>-32022</code> with a
+        <code>supported</code> list. Drop <code>_meta</code> and you should get
+        <code>-32602</code>. Drop <code>Mcp-Method</code> and you should get
+        <code>-32020</code>. That is the whole conformance surface, testable
+        from a shell.
+      </p>
+
+      <h2>Step 7 &mdash; extract the SDK</h2>
+      <p>
+        Look back at what we wrote. Only two functions were about dice;
+        everything else — <code>_meta</code> validation, version rejection,
+        header checking, <code>server/discover</code>,
+        <code>resultType</code> stamping, error mapping — is identical for every
+        server that will ever exist. That is the SDK.
+      </p>
+      <p><code>src/mcp/sdk/</code> holds all of it, one concern per file:</p>
+      <pre><code>src/mcp/
+  sdk/
+    index.ts      public surface — what a server imports
+    server.ts     McpServer: registries, dispatch, handle()
+    context.ts    RequestContext: per-call state, answer() / elicit() / progress()
+    protocol.ts   version, _meta keys, error codes, RpcError
+    results.ts    text() / toolError()
+    resources.ts  uri template matching, content builders
+    prompts.ts    message builders
+    types.ts      shared types
+    http.ts       transport: Streamable HTTP
+    headers.ts      - header mirroring and validation
+    sse.ts          - the two SSE stream shapes
+    auth.ts       OAuth 2.1 resource server
+  server.ts       the dice server: tools, resources and prompts
+  auth-config.ts  token verification for this deployment</code></pre>
+
+      <p>A server then declares what it offers and nothing else:</p>
+      <pre><code>import { McpServer, text, toolError } from "./sdk"
+
+export const mcpServer = new McpServer(
+  { name: "dice-server", version: "1.0.0" },
+  { instructions: "Rolls dice. Call roll_dice with a count and a number of sides." },
+)
+
+mcpServer.tool(
+  {
+    name: "roll_dice",
+    description: "Roll N dice with S sides each and return the individual rolls and their total.",
+    inputSchema: { type: "object", properties: { /* ... */ }, additionalProperties: false },
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  },
+  (args) =&gt; rollDice(Number(args.count ?? 1), Number(args.sides ?? 6)),
+)</code></pre>
+
+      <p>and one route serves it:</p>
+      <pre><code>Bun.serve({
+  routes: {
+    "/mcp": mcpServer.fetch,
+    ...mcpServer.wellKnownRoutes(),
+  },
+})</code></pre>
+
+      <h3>What the SDK is hiding</h3>
+      <table>
+        <tr>
+          <th>You write</th>
+          <th>The SDK does</th>
+        </tr>
+        <tr>
+          <td><code>new McpServer(info, options)</code></td>
+          <td>
+            Answers <code>server/discover</code> with supported versions, the
+            capabilities you actually registered, instructions and cache hints;
+            stamps <code>serverInfo</code> into every result
+          </td>
+        </tr>
+        <tr>
+          <td><code>server.tool(definition, handler)</code></td>
+          <td>
+            Serves <code>tools/list</code> with <code>ttlMs</code> and
+            <code>cacheScope</code>, and routes <code>tools/call</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>server.resource(definition, read)</code></td>
+          <td>
+            Serves both list methods and routes <code>resources/read</code> —
+            exact uris first, then <code>{variable}</code> templates
+          </td>
+        </tr>
+        <tr>
+          <td><code>server.prompt(definition, handler)</code></td>
+          <td>
+            Serves <code>prompts/list</code>, checks required arguments, routes
+            <code>prompts/get</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>server.fetch</code></td>
+          <td>
+            Method and origin checks, authorization, content negotiation, header
+            mirroring, version rejection, SSE when streaming is called for, and
+            the JSON-RPC-to-HTTP status mapping
+          </td>
+        </tr>
+        <tr>
+          <td><code>text()</code> / <code>toolError()</code></td>
+          <td>
+            Builds the <code>content</code> array, and keeps tool failures as
+            results rather than protocol errors
+          </td>
+        </tr>
+      </table>
+
+      <h3>The MRTR ergonomics</h3>
+      <p>
+        The awkward part of a stateless protocol is asking a question. The
+        context object makes both halves of the round trip read like one
+        function:
+      </p>
+      <pre><code>(_args, context) =&gt; {
+  const answer = context.answer&lt;{ sides?: number }&gt;("how_many_sides")
+  if (answer) return rollDice(1, Number(answer.sides ?? 6))    // second call
+
+  return context.elicit("how_many_sides", {                    // first call
+    message: "How many sides should the die have?",
+    schema: { type: "object", properties: { sides: { type: "integer" } }, required: ["sides"] },
+  })
+}</code></pre>
+      <p>
+        <code>answer()</code> reads <code>params.inputResponses</code> and
+        returns <code>undefined</code> unless the user accepted.
+        <code>elicit()</code> builds the <code>input_required</code> result —
+        and first checks the client declared <code>elicitation</code>, throwing
+        <code>-32021</code> with <code>requiredCapabilities</code> if not,
+        because a server must never send an input request the client cannot
+        service.
+      </p>
+
+      <h2>Against the official SDK</h2>
+      <p>
+        Ours is around 900 lines across twelve files and covers all three
+        primitives, both SSE stream shapes and OAuth resource-server support.
+        <code>@modelcontextprotocol/sdk</code> adds stdio, subscriptions in
+        depth, pagination, schema validation and far more — but the shape is the
+        same, and you now know exactly what it is doing for you. Check which
+        protocol revision your SDK version targets before assuming it is modern;
+        the era matters more than the package version.
+      </p>
+
+      <div class="next">
+        <a href="/guides/primitives">&larr; Primitives</a
+        ><a href="/guides/http">Next: HTTP &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

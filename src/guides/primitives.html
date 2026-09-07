@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>3. Primitives — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">Chapter 3</span>
+      <h1>The primitives</h1>
+      <p class="lede">
+        Three things a server offers. The useful mental model is
+        <em>who is in control</em> — and, since <code>2026-07-28</code>, how a
+        server asks for something back without holding a session open.
+      </p>
+
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 200"
+          role="img"
+          aria-label="Server primitives tools resources prompts, each labelled by who triggers them"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="11"
+          >
+            <g
+              fill="none"
+              stroke="var(--server)"
+              stroke-width="1.5"
+            >
+              <rect
+                x="10"
+                y="20"
+                width="600"
+                height="46"
+                rx="8"
+              />
+              <rect
+                x="10"
+                y="78"
+                width="600"
+                height="46"
+                rx="8"
+              />
+              <rect
+                x="10"
+                y="136"
+                width="600"
+                height="46"
+                rx="8"
+              />
+            </g>
+            <g fill="currentColor">
+              <text
+                x="30"
+                y="42"
+                font-weight="700"
+              >
+                tools
+              </text>
+              <text
+                x="150"
+                y="42"
+                fill="var(--muted)"
+                font-size="10"
+              >
+                model-controlled — the model decides to call it. Verbs, side
+                effects.
+              </text>
+              <text
+                x="30"
+                y="100"
+                font-weight="700"
+              >
+                resources
+              </text>
+              <text
+                x="150"
+                y="100"
+                fill="var(--muted)"
+                font-size="10"
+              >
+                app-controlled — the host decides what to attach. Read-only
+                nouns.
+              </text>
+              <text
+                x="30"
+                y="158"
+                font-weight="700"
+              >
+                prompts
+              </text>
+              <text
+                x="150"
+                y="158"
+                fill="var(--muted)"
+                font-size="10"
+              >
+                user-controlled — a person picks it off a menu. Templates.
+              </text>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      <div class="note">
+        <strong>"Controlled by" means who decides to invoke it</strong> — not
+        who sends the request. Every one of these arrives as a call from the
+        <em>client</em>; only for tools is the client acting on the model's
+        choice.
+        <a href="/guides/architecture#who-calls-what">Who calls what &rarr;</a>
+      </div>
+
+      <h2>Tools &mdash; model-controlled</h2>
+      <p>
+        The model picks them from name, description and schema alone, so the
+        <code>description</code> is prompt engineering, not documentation.
+      </p>
+      <pre><code>{
+  "name": "search_issues",
+  "title": "Search issues",
+  "description": "Search GitHub issues in a repo. Returns at most 20 matches, newest first.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo":  { "type": "string", "description": "owner/name, e.g. facebook/react" },
+      "query": { "type": "string" },
+      "state": { "type": "string", "enum": ["open", "closed", "all"], "default": "open" }
+    },
+    "required": ["repo", "query"],
+    "additionalProperties": false
+  }
+}</code></pre>
+      <p>
+        Names should stick to <code>A-Za-z0-9_-.</code> and stay under 128
+        characters. A tool with no parameters still needs a schema:
+        <code>{ "type": "object", "additionalProperties": false }</code>. An
+        optional <code>outputSchema</code> constrains
+        <code>structuredContent</code>, which may be any JSON value.
+      </p>
+
+      <h3>Annotations (hints, not enforcement)</h3>
+      <p>
+        Hosts use these to decide what needs confirmation. Clients must treat
+        them as untrusted unless the server is trusted.
+      </p>
+      <table>
+        <tr>
+          <th>Hint</th>
+          <th>Means</th>
+        </tr>
+        <tr>
+          <td><code>readOnlyHint</code></td>
+          <td>Changes nothing. Hosts may run it without asking.</td>
+        </tr>
+        <tr>
+          <td><code>destructiveHint</code></td>
+          <td>May delete or overwrite. Expect a confirmation dialog.</td>
+        </tr>
+        <tr>
+          <td><code>idempotentHint</code></td>
+          <td>Calling twice with the same args is the same as once.</td>
+        </tr>
+        <tr>
+          <td><code>openWorldHint</code></td>
+          <td>Touches the outside world (network, external API).</td>
+        </tr>
+      </table>
+
+      <div class="note">
+        <strong>All three are implemented in this repo.</strong>
+        <code>server.tool()</code>, <code>server.resource()</code> and
+        <code>server.prompt()</code> in <code>src/mcp/server.ts</code>; the
+        dispatch for each is in <code>src/mcp/sdk/server.ts</code>. A server
+        only advertises the capabilities it actually has something registered
+        for.
+      </div>
+
+      <h2>Resources &mdash; app-controlled</h2>
+      <p>
+        <strong>Read-only data your server exposes, addressed by a URI.</strong>
+        Think "files the server can hand over." No side effects, and
+        <code>resources/read</code> twice should give the same thing.
+      </p>
+      <p>
+        The defining trait:
+        <strong>the model does not decide to fetch them.</strong>
+        The application or the person does. That is the entire difference from a
+        tool.
+      </p>
+
+      <pre><code>// static — an exact uri
+{ "uri": "file:///logs/app.log", "name": "app-log", "mimeType": "text/plain" }
+
+// templated — RFC 6570, {variable} expansion
+{ "uriTemplate": "db://users/{userId}", "name": "user-record" }</code></pre>
+
+      <h3>When they are called</h3>
+      <pre><code>client connects
+  -&gt; resources/list            the exact-uri ones (dice://notation)
+  -&gt; resources/templates/list  the patterns (dice://odds/{sides})
+     ... client caches both, honouring your ttlMs ...
+
+someone attaches or references one
+  -&gt; resources/read { uri: "dice://odds/20" }
+  &lt;- contents [...]            the text becomes conversation context</code></pre>
+      <p>
+        Two requests at connection time to <em>populate a picker</em>, then a
+        read when someone picks. Your reader runs only at that last step, and
+        receives whatever the template captured:
+      </p>
+      <pre><code>server.resource(
+  { name: "dice-odds", uriTemplate: "dice://odds/{sides}", mimeType: "text/plain" },
+  ({ uri, variables }) =&gt; ({
+    contents: [textResource(uri, `A d${variables.sides} rolls each face ...`)],
+  }),
+)</code></pre>
+      <p>
+        Exact uris are matched first, then templates. A uri matching neither is
+        <code>-32602</code> — the code that replaced the retired
+        <code>-32002</code> in this revision.
+      </p>
+
+      <h3>Where they show up</h3>
+      <p>
+        In a host that supports resources:
+        <code>/mcp</code> lists the server and confirms
+        <code>resources/list</code> succeeded, and resources are referenced with
+        <code>@</code> mentions namespaced by server. Type <code>@</code> and
+        read the autocomplete — that is authoritative for your client version,
+        and the surface differs between hosts.
+      </p>
+
+      <div class="note">
+        <strong>Your template will not appear in a picker.</strong>
+        <code>resources/list</code> returns only exact uris, so a menu can offer
+        <code>dice://notation</code> but not <code>dice://odds/{sides}</code> —
+        there is nothing to enumerate, <code>{sides}</code> is infinite.
+        Templates come from <code>resources/templates/list</code>, and whether a
+        client offers a fill-in-the-blank UI is up to it. If you want something
+        discoverable in a menu, <strong>register concrete uris</strong>.
+      </div>
+
+      <h3>So why not just make it a tool?</h3>
+      <p>
+        Honestly, for most read-only data a tool would work too, and the model
+        could fetch it unprompted. Reasons to choose a resource:
+      </p>
+      <ul>
+        <li>
+          <strong>It costs no model tokens to decide.</strong> Nothing enters
+          the prompt until a person attaches it.
+        </li>
+        <li>
+          <strong>It is the right shape for reference material</strong> a user
+          browses, rather than an action.
+        </li>
+        <li>
+          <strong>There is nothing to abuse.</strong> Read-only, no arguments
+          beyond the uri, nothing to validate.
+        </li>
+      </ul>
+      <p>
+        Against that:
+        <strong>resources are the least-supported primitive.</strong>
+        Plenty of clients implement tools only, and a server that hides
+        something important behind a resource may find nobody ever reads it.
+      </p>
+      <div class="note">
+        <strong>The test for resource versus tool.</strong> If the model should
+        be able to fetch it mid-turn, it is a tool. If a person picks it, it is
+        a resource. When in doubt ship the tool — it works everywhere.
+      </div>
+
+      <h2>Prompts &mdash; user-controlled</h2>
+      <p>
+        A prompt is a <strong>saved message with holes in it</strong>. A person
+        picks it off a menu, the client fills the holes with their arguments,
+        and the result is dropped into the conversation as if they had typed it.
+      </p>
+
+      <div class="note">
+        <strong>The messages you return are input, not output.</strong> Your
+        server is not answering the user — it is writing the user's message
+        <em>for</em> them. Nothing you return here is shown as a reply.
+      </div>
+
+      <pre><code>server.prompt(
+  {
+    name: "explain-roll",
+    arguments: [{ name: "notation", required: true }, { name: "context" }],
+  },
+  (args) =&gt; ({ messages: [userMessage(`Roll ${args.notation} and explain the odds`)] }),
+)</code></pre>
+
+      <p>What comes back over the wire:</p>
+      <pre><code>{
+  "description": "Roll 3d20 and explain the odds",
+  "messages": [
+    { "role": "user", "content": { "type": "text",
+      "text": "Roll 3d20 using the roll_dice tool for a boss fight, then explain how likely that total was." } }
+  ]
+}</code></pre>
+
+      <h3>What happens next</h3>
+      <p>
+        The client seeds the conversation with those messages and runs an
+        ordinary model turn. Because this particular text tells the model to use
+        a tool, one slash command sets off both a <code>prompts/get</code> and a
+        <code>tools/call</code> — and the user sees only the final prose.
+      </p>
+      <pre><code>user picks /explain-roll, fills in notation=3d20
+  -&gt; prompts/get { name, arguments }     client asks your server
+  &lt;- messages [...]                      your server returns the text
+     client seeds the conversation with those messages
+     model turn begins — it reads "Roll 3d20 using the roll_dice tool..."
+     model emits: use roll_dice { count: 3, sides: 20 }
+  -&gt; tools/call                          client sends it
+  &lt;- "Rolled 3d20: 11, 6, 2 (total 19)"
+     model composes: "You rolled 19 — below average for 3d20, whose mean is 31.5..."
+user sees THAT</code></pre>
+
+      <h3>Isn't that just a skill, or a slash command?</h3>
+      <p>
+        Essentially yes, and it is the most useful way to think about it: saved
+        instructions injected into context, not code that computes an answer.
+        The differences are worth knowing:
+      </p>
+      <table>
+        <tr>
+          <th></th>
+          <th>A local skill / slash command</th>
+          <th>An MCP prompt</th>
+        </tr>
+        <tr>
+          <td>Lives</td>
+          <td>In a file on disk</td>
+          <td>On the server, fetched over the wire</td>
+        </tr>
+        <tr>
+          <td>Text</td>
+          <td>Static, with placeholders substituted</td>
+          <td>
+            <strong>Generated per call</strong> — your handler runs and can
+            query anything
+          </td>
+        </tr>
+        <tr>
+          <td>Arguments</td>
+          <td>Usually free-form</td>
+          <td>
+            Declared and validated; a missing <code>required</code> one is
+            rejected with <code>-32602</code>
+          </td>
+        </tr>
+        <tr>
+          <td>Triggered by</td>
+          <td>A person, or sometimes the model</td>
+          <td>A person, always</td>
+        </tr>
+        <tr>
+          <td>Can bundle</td>
+          <td>Scripts, files, other resources</td>
+          <td>Messages only</td>
+        </tr>
+      </table>
+      <p>
+        The dynamic part is the real difference: a prompt handler is code. It
+        can read today's schema, the current sprint, the user's open tickets,
+        and build the message from that — something a static file cannot do.
+      </p>
+
+      <h3>Three rules</h3>
+      <ul>
+        <li>
+          <strong
+            ><code>description</code> is for humans, <code>messages</code> are
+            for the model.</strong
+          >
+          The client shows the description in its menu; only the messages reach
+          the model.
+        </li>
+        <li>
+          <strong>Your server never learns what happened.</strong>
+          <code>prompts/get</code> is one request, answered, done. You do not
+          find out whether the model complied, called your tool, or ignored the
+          instruction entirely.
+        </li>
+        <li>
+          <strong>You can prefill both roles.</strong> Alternating
+          <code>user</code> and <code>assistant</code> messages seed a few-shot
+          exchange, and the model treats the assistant turns as things it
+          already said — which is why the SDK exports
+          <code>assistantMessage</code> alongside <code>userMessage</code>.
+        </li>
+      </ul>
+
+      <div class="note">
+        <strong>The test for prompt versus tool.</strong> If you are tempted to
+        compute the answer inside <code>prompts/get</code>, you want a tool. A
+        prompt writes the request; a tool performs the work.
+      </div>
+
+      <h2>Asking the client for something: MRTR</h2>
+      <p>
+        Server-initiated requests are gone. A server that needs input mid-call
+        answers with <code>resultType: "input_required"</code>, and the
+        <strong>client retries the whole request</strong> with the answers
+        attached. Two independent requests, no session in between.
+      </p>
+
+      <div class="figure">
+        <svg
+          viewBox="0 0 620 210"
+          role="img"
+          aria-label="Multi round-trip request: tool call returns input_required, client gathers input, client retries with inputResponses"
+        >
+          <g
+            font-family="ui-monospace, monospace"
+            font-size="10"
+          >
+            <line
+              x1="60"
+              y1="30"
+              x2="60"
+              y2="200"
+              stroke="var(--client)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <line
+              x1="540"
+              y1="30"
+              x2="540"
+              y2="200"
+              stroke="var(--server)"
+              stroke-opacity="0.4"
+              stroke-dasharray="3 3"
+            />
+            <text
+              x="30"
+              y="22"
+              fill="var(--client)"
+              font-size="11"
+              font-weight="700"
+            >
+              client
+            </text>
+            <text
+              x="510"
+              y="22"
+              fill="var(--server)"
+              font-size="11"
+              font-weight="700"
+            >
+              server
+            </text>
+            <defs>
+              <marker
+                id="ar3"
+                markerWidth="8"
+                markerHeight="8"
+                refX="7"
+                refY="3"
+                orient="auto"
+              >
+                <path
+                  d="M0,0 L7,3 L0,6 Z"
+                  fill="currentColor"
+                />
+              </marker>
+            </defs>
+            <g
+              stroke="currentColor"
+              stroke-opacity="0.7"
+              marker-end="url(#ar3)"
+              fill="none"
+            >
+              <line
+                x1="60"
+                y1="58"
+                x2="534"
+                y2="58"
+              />
+              <line
+                x1="540"
+                y1="92"
+                x2="66"
+                y2="92"
+              />
+              <line
+                x1="60"
+                y1="184"
+                x2="534"
+                y2="184"
+              />
+            </g>
+            <g
+              fill="currentColor"
+              text-anchor="middle"
+            >
+              <text
+                x="300"
+                y="52"
+              >
+                tools/call (id: 1)
+              </text>
+              <text
+                x="300"
+                y="86"
+              >
+                result { resultType: "input_required", inputRequests,
+                requestState }
+              </text>
+              <text
+                x="300"
+                y="178"
+              >
+                tools/call (id: 2) + inputResponses + requestState
+              </text>
+            </g>
+            <text
+              x="300"
+              y="116"
+              fill="var(--muted)"
+              text-anchor="middle"
+            >
+              request 1 is over — the server keeps nothing
+            </text>
+            <text
+              x="300"
+              y="140"
+              fill="var(--muted)"
+              text-anchor="middle"
+            >
+              client asks the user / runs the model
+            </text>
+            <rect
+              x="150"
+              y="126"
+              width="300"
+              height="22"
+              rx="6"
+              fill="none"
+              stroke="currentColor"
+              stroke-opacity="0.25"
+            />
+          </g>
+        </svg>
+      </div>
+
+      <pre><code>// &lt;- server needs input
+{
+  "resultType": "input_required",
+  "inputRequests": {
+    "github_login": {
+      "method": "elicitation/create",
+      "params": {
+        "mode": "form",
+        "message": "Please provide your GitHub username",
+        "requestedSchema": { "type": "object", "properties": { "name": { "type": "string" } }, "required": ["name"] }
+      }
+    }
+  },
+  "requestState": "AEAD-protected blob"
+}
+
+// -> client retries the ORIGINAL request with a NEW id
+{
+  "method": "tools/call",
+  "params": {
+    "name": "get_weather",
+    "arguments": { "location": "New York" },
+    "inputResponses": { "github_login": { "action": "accept", "content": { "name": "octocat" } } },
+    "requestState": "AEAD-protected blob"
+  }
+}</code></pre>
+
+      <p>
+        Only <code>tools/call</code>, <code>resources/read</code> and
+        <code>prompts/get</code> may return <code>input_required</code>. The
+        values inside <code>inputRequests</code> are exactly the three former
+        server-to-client requests: <code>elicitation/create</code>,
+        <code>sampling/createMessage</code>, <code>roots/list</code>. A server
+        must not request one the client didn't declare in
+        <code>clientCapabilities</code>.
+      </p>
+
+      <div class="note">
+        <strong><code>requestState</code> is attacker-controlled.</strong> It
+        travels through the client, so if it influences authorization or
+        business logic you must integrity-protect it (HMAC or AEAD) and reject
+        what fails verification. Bind it to the authenticated principal, give it
+        a short TTL, and tie it to the originating request. Clients must echo it
+        back byte-for-byte and never parse it.
+      </div>
+
+      <h2>Change notifications: subscriptions/listen</h2>
+      <p>
+        The HTTP GET stream and <code>resources/subscribe</code> are replaced by
+        one long-lived request. The client opts into what it wants; the server
+        tags each notification with
+        <code>io.modelcontextprotocol/subscriptionId</code>.
+      </p>
+      <pre><code>// -> subscriptions/listen { toolsListChanged: true, resourcesListChanged: true }
+// &lt;- notifications/subscriptions/acknowledged, then a stream of change notifications</code></pre>
+      <p>
+        Request-scoped notifications like
+        <code>notifications/progress</code> still flow on the response stream of
+        the request they belong to, not on this one.
+      </p>
+
+      <h2>Deprecated as of 2026-07-28</h2>
+      <p>Still functional, but new servers should not adopt them:</p>
+      <table>
+        <tr>
+          <th>Feature</th>
+          <th>Do this instead</th>
+        </tr>
+        <tr>
+          <td>Roots</td>
+          <td>
+            Pass directories via tool parameters, resource URIs, or server
+            config
+          </td>
+        </tr>
+        <tr>
+          <td>Sampling</td>
+          <td>Integrate an LLM provider API directly</td>
+        </tr>
+        <tr>
+          <td>Logging (<code>notifications/message</code>)</td>
+          <td>Log to <code>stderr</code> on stdio, or use OpenTelemetry</td>
+        </tr>
+        <tr>
+          <td>HTTP+SSE transport</td>
+          <td>Streamable HTTP</td>
+        </tr>
+      </table>
+      <p>
+        Removed outright: <code>ping</code>, <code>logging/setLevel</code> (log
+        level is per-request via <code>io.modelcontextprotocol/logLevel</code>),
+        and <code>notifications/roots/list_changed</code>. Tasks moved out of
+        core into the <code>io.modelcontextprotocol/tasks</code> extension.
+      </p>
+
+      <div class="note">
+        <strong>Choosing.</strong> If the model should decide when to run it,
+        it's a tool. If it's data the app attaches, it's a resource. If a human
+        picks it off a menu, it's a prompt. Most servers ship tools only —
+        that's fine, and increasingly it's the whole recommended surface.
+      </div>
+
+      <div class="next">
+        <a href="/guides/requests">&larr; Requests</a
+        ><a href="/guides/build">Next: Build one &rarr;</a>
+      </div>
+    </div>
+  </body>
+</html>

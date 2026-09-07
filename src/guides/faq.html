@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="/favicon.svg"
+    />
+    <link
+      rel="stylesheet"
+      href="/guides/style.css"
+    />
+    <title>FAQ — MCP by Building</title>
+  </head>
+  <body>
+    <nav class="top">
+      <div class="inner">
+        <a
+          class="brand"
+          href="/guides"
+          >MCP by Building</a
+        >
+        <a href="/guides/architecture">1. Architecture</a>
+        <a href="/guides/requests">2. Requests</a>
+        <a href="/guides/primitives">3. Primitives</a>
+        <a href="/guides/build">4. Build one</a>
+        <a href="/guides/http">5. HTTP</a>
+        <a href="/guides/debug">6. Debug</a>
+        <a href="/guides/faq">FAQ</a>
+      </div>
+    </nav>
+    <div class="wrap">
+      <span class="pill">FAQ</span>
+      <h1>Questions that come up</h1>
+      <p class="lede">
+        The things that trip people up, answered once. Each links to where the
+        detail lives.
+      </p>
+
+      <h2>Who actually calls these methods — the model?</h2>
+      <p>
+        <strong>No. The client does.</strong> The model never emits JSON-RPC; it
+        cannot call anything. It produces text and tool-use blocks, and the
+        client translates one of those into a <code>tools/call</code> request.
+      </p>
+      <p>
+        Of the methods MCP defines, exactly one is model-driven:
+        <code>tools/call</code>. Everything else — every <code>list</code>,
+        <code>server/discover</code>, <code>resources/read</code>,
+        <code>prompts/get</code> — is initiated by the client or by a human.
+        <a href="/guides/architecture#who-calls-what"
+          >Full table and ordering &rarr;</a
+        >
+      </p>
+
+      <h2 id="claude-code">
+        Concretely: what is the "client" when I open Claude Code?
+      </h2>
+      <p>
+        <strong>Claude Code is the host.</strong> The client is not a separate
+        program — it is an object <em>inside</em> Claude Code, one per
+        configured server. Three servers in your config means three clients.
+        Your server process is the server.
+      </p>
+      <p>What happens when you open Claude Code, in order:</p>
+      <ol class="steps">
+        <li>
+          Claude Code reads your MCP config and
+          <strong>spawns your server as a subprocess</strong>, pipes attached.
+        </li>
+        <li>
+          That connection's client sends <code>server/discover</code>, then
+          <code>tools/list</code> and <code>prompts/list</code>.
+          <strong>No model has run yet</strong> — you may not have typed
+          anything. <code>/mcp</code> shows you the result.
+        </li>
+        <li>
+          The returned tool definitions are injected into the model's context as
+          available tools.
+        </li>
+        <li>
+          You type "roll 3d20". The model emits a tool-use block;
+          <strong>Claude Code</strong> converts it to
+          <code>tools/call</code> and writes it to the pipe.
+        </li>
+        <li>
+          Your server answers, and Claude Code feeds the result text back into
+          the model's context.
+        </li>
+      </ol>
+      <div class="note">
+        <strong>Watch it happen.</strong> Add
+        <code>console.error("got:", line)</code> in
+        <code>src/mcp/sdk/stdio.ts</code> and start Claude Code: you will see
+        <code>server/discover</code> and <code>tools/list</code> arrive before
+        you type a single prompt.
+      </div>
+
+      <h2>Are the method names a convention I can extend?</h2>
+      <p>
+        No — <code>tools/list</code>, <code>tools/call</code>,
+        <code>resources/read</code>, <code>prompts/get</code>,
+        <code>server/discover</code> are fixed strings in the spec's schema,
+        like HTTP verbs. Invent <code>tools/fetch</code> and every client
+        answers <code>-32601</code>.
+      </p>
+      <p>
+        The extension point is namespaced: official extensions add methods under
+        <code>io.modelcontextprotocol/</code>, third parties under their own
+        reverse-DNS prefix. Never a bare new method name.
+      </p>
+
+      <h2>When does <code>instructions</code> reach the model?</h2>
+      <p>
+        It rides in the <code>server/discover</code> result and nowhere else.
+        The client fetches it and decides what to do — typically prepending it
+        to the system prompt once, at setup.
+      </p>
+      <div class="note">
+        <strong>The catch:</strong> <code>server/discover</code> is
+        <em>optional for clients</em>. A client may call
+        <code>tools/call</code> inline and never discover at all, in which case
+        your <code>instructions</code> is never read by anyone. Treat it as a
+        droppable hint; anything a tool genuinely needs belongs in that tool's
+        own <code>description</code>.
+      </div>
+
+      <h2>Isn't there supposed to be an <code>initialize</code> handshake?</h2>
+      <p>
+        Not since revision <code>2026-07-28</code>. It was removed along with
+        protocol-level sessions. Every request now carries its own protocol
+        version and capabilities in <code>_meta</code>. Revisions up to
+        <code>2025-11-25</code> are called <em>legacy</em>; anything you read
+        describing a handshake is written for those.
+        <a href="/guides/requests">Chapter 2 &rarr;</a>
+      </p>
+
+      <h2>Doesn't statelessness mean writing more code?</h2>
+      <p>
+        Slightly less, and simpler code. Writing the same server both ways in
+        this repo: <strong>213 lines modern, 291 legacy</strong> — the legacy
+        version additionally needs a four-state phase machine, a guard on every
+        dispatch, an outbound request-id space with a correlation table,
+        keepalive probing, and session teardown. About 94 lines exist only to
+        maintain a connection, against 19 spent validating <code>_meta</code> on
+        every request.
+      </p>
+      <p>
+        On HTTP the gap is much wider: sessions meant a session store, sticky
+        routing, a per-session SSE channel and an event-id replay buffer. All
+        deleted. <a href="/guides/http">Chapter 5 &rarr;</a>
+      </p>
+
+      <h2>How does the server discover its own resources and prompts?</h2>
+      <p>
+        It doesn't — there's no discovery magic anywhere in MCP. A server knows
+        only what <em>you</em> registered on it, exactly like tools:
+      </p>
+      <pre><code>server.tool(definition, (args, context) =&gt; ...)             // model-controlled
+server.resource(definition, ({ uri, variables }) =&gt; ...)    // app-controlled
+server.prompt(definition, (args) =&gt; ...)                    // user-controlled</code></pre>
+      <p>
+        The client then calls <code>tools/list</code>,
+        <code>resources/list</code> or <code>prompts/list</code> and gets back
+        what's registered. <a href="/guides/primitives">Chapter 3 &rarr;</a>
+      </p>
+
+      <h2>What is the <code>context</code> argument my handler receives?</h2>
+      <p>
+        <code>RequestContext</code> — everything the server knows about this one
+        call, and nothing else. In a stateless protocol there is no session
+        object, so this replaces it: built fresh per request, thrown away after.
+      </p>
+      <table>
+        <tr>
+          <th>Member</th>
+          <th>What it gives you</th>
+        </tr>
+        <tr>
+          <td><code>clientCapabilities</code> / <code>clientInfo</code></td>
+          <td>
+            Who is calling and what they support, from this request's
+            <code>_meta</code>
+          </td>
+        </tr>
+        <tr>
+          <td><code>progress(...)</code></td>
+          <td>
+            Report partial work. Real on a streaming transport when the client
+            sent a <code>progressToken</code>; a no-op otherwise, so handlers
+            never branch on transport
+          </td>
+        </tr>
+        <tr>
+          <td><code>answer(key)</code></td>
+          <td>
+            The user's reply to an earlier <code>elicit()</code>, or
+            <code>undefined</code> on the first call (and when they declined or
+            cancelled)
+          </td>
+        </tr>
+        <tr>
+          <td><code>elicit(key, ask)</code></td>
+          <td>
+            Ask a question and end the request; the client retries the whole
+            call with the answer
+          </td>
+        </tr>
+        <tr>
+          <td><code>requestState</code></td>
+          <td>The opaque blob the client echoes back on that retry</td>
+        </tr>
+      </table>
+      <p>
+        <code>answer</code> and <code>elicit</code> are the two halves of one
+        round trip, which is why they live together:
+      </p>
+      <pre><code>const answer = context.answer&lt;{ sides?: number }&gt;("how_many_sides")
+if (answer) return rollDice(1, Number(answer.sides ?? 6))   // second call
+return context.elicit("how_many_sides", { message, schema }) // first call</code></pre>
+      <p>
+        Two separate requests, possibly served by different instances, written
+        as one function.
+      </p>
+
+      <h2 id="resource-vs-tool">
+        When do resources get called, and where do they appear?
+      </h2>
+      <p>
+        The client calls <code>resources/list</code> and
+        <code>resources/templates/list</code> at connection time to populate a
+        picker, then <code>resources/read</code> when a person attaches or
+        references one. The model never decides to fetch a resource — that is
+        the whole difference from a tool.
+      </p>
+      <p>
+        In Claude Code they surface as <code>@</code> mentions namespaced by
+        server; type <code>@</code> and read the autocomplete for your client
+        version. Note that a <em>templated</em> resource cannot appear in a
+        picker — <code>resources/list</code> only returns exact uris — so
+        register concrete uris for anything you want discoverable.
+        <a href="/guides/primitives">Chapter 3 &rarr;</a>
+      </p>
+
+      <h2 id="prompt-vs-skill">
+        A prompt sounds like a skill or a slash command. Is it?
+      </h2>
+      <p>
+        Essentially yes — saved instructions injected into context, not code
+        that computes an answer. Two differences matter: an MCP prompt is
+        <strong>generated per call</strong> by a handler that can query anything
+        before writing the text, and its arguments are declared and validated
+        rather than free-form. A local skill can also bundle scripts and files;
+        a prompt returns messages only.
+      </p>
+
+      <h2>What happens after <code>prompts/get</code> returns?</h2>
+      <p>
+        The <code>messages</code> you return are
+        <strong>input, not output</strong>. Your server is writing the user's
+        message for them, not answering. The client injects them into the
+        conversation as if the person had typed them, then runs a normal model
+        turn — so if your text says "use the roll_dice tool", one slash command
+        triggers a <code>prompts/get</code> and then a <code>tools/call</code>,
+        and the user sees only the final prose.
+      </p>
+      <p>
+        Your server never learns the outcome: <code>prompts/get</code> is one
+        request, answered, done.
+        <a href="/guides/primitives">The full trace &rarr;</a>
+      </p>
+
+      <h2>My tool failed. Error or result?</h2>
+      <p>
+        <strong>Result</strong>, with <code>isError: true</code> and the reason
+        in <code>content</code> — the model reads it and self-corrects. Reserve
+        JSON-RPC errors for unknown tools, malformed requests and server faults,
+        which the model cannot fix. Getting this backwards is the most common
+        beginner bug. <a href="/guides/requests">Chapter 2 &rarr;</a>
+      </p>
+
+      <h2>How do I keep state between two tool calls?</h2>
+      <p>
+        Return an explicit handle and take it back as an ordinary tool argument:
+      </p>
+      <pre><code>// -&gt; create_basket {}            &lt;- { "basket_id": "bsk_a1b2c3" }
+// -&gt; add_item { "basket_id": "bsk_a1b2c3", "sku": "..." }</code></pre>
+      <p>
+        The model carries it forward. A handle is a name, not a capability:
+        re-authorize on every call, keep it opaque, bound its lifetime, and say
+        so in the creating tool's description.
+      </p>
+
+      <h2>Do I have to implement <code>server/discover</code>?</h2>
+      <p>
+        Yes — servers <strong>MUST</strong>. Clients <strong>MAY</strong> skip
+        calling it. The asymmetry is deliberate: it is also the probe a dual-era
+        client uses on stdio to tell a modern server from a legacy one.
+      </p>
+
+      <h2 id="era-mismatch">
+        Claude Code says "Failed to connect" to my server. Why?
+      </h2>
+      <p>
+        Most likely an era mismatch. Run
+        <code>claude mcp get &lt;name&gt;</code>: if the issue reads
+        <code
+          >-32601: This server is stateless and has no initialize
+          handshake</code
+        >, your client is legacy and your server is modern-only. Claude Code
+        2.1.263 opens with <code>protocolVersion: "2025-11-25"</code> — the
+        handshake era.
+      </p>
+      <p>
+        There are two honest answers. Serve those clients by implementing the
+        handshake era alongside the modern one — cheap on stdio, expensive over
+        HTTP, where legacy also means <code>Mcp-Session-Id</code>, sticky
+        routing and SSE resumability. Or stay modern-only and wait, which is
+        what the SDK in this repo does. Check what your target clients speak
+        <em>before</em> you build against the transport.
+      </p>
+
+      <h2>My HTTP endpoint rejects everything with -32020. Why?</h2>
+      <p>
+        A header disagrees with the body. Streamable HTTP mirrors
+        <code>method</code> into <code>Mcp-Method</code>,
+        <code>params.name</code> or <code>params.uri</code> into
+        <code>Mcp-Name</code>, the <code>_meta</code> version into
+        <code>MCP-Protocol-Version</code>, and any
+        <code>x-mcp-header</code> argument into <code>Mcp-Param-*</code>. All
+        are required, and the server must reject a mismatch rather than pick a
+        side.
+      </p>
+      <p>
+        On the stdio transport the equivalent failure is writing to
+        <strong>stdout</strong> — a <code>console.log</code> or a startup banner
+        corrupts the protocol channel there.
+        <a href="/guides/debug">Chapter 6 &rarr;</a>
+      </p>
+
+      <h2>Which revision am I actually speaking?</h2>
+      <p>
+        Check the date at the top of any spec page you read, and check what your
+        SDK targets — the era matters more than the package version. A modern
+        client against a legacy server (or the reverse) fails in confusing ways,
+        including a legacy server happily processing a request under legacy
+        semantics.
+        <a href="/guides/requests#compat">Compatibility matrix &rarr;</a>
+      </p>
+
+      <div class="next">
+        <a href="/guides/debug">&larr; Debug &amp; ship</a
+        ><a href="/guides">Back to overview</a>
+      </div>
+    </div>
+  </body>
+</html>
