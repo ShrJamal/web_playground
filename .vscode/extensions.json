@@ -1,0 +1,7 @@
+{
+  "recommendations": [
+    "tailwindcss.tailwindcss-intellisense",
+    "VoidZero.vite-plus-extension-pack"
+  ],
+  "unwantedRecommendations": ["esbenp.prettier-vscode"]
+}

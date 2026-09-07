@@ -1,6 +1,5 @@
 .DS_Store
 node_modules/
-.vscode/
 .pnp/
 .pnp.js/
 *.pem
@@ -10,6 +9,7 @@ build/
 package/
 dist/
 dist-ssr/
+.wrangler
 
 # debug
 npm-debug.log*

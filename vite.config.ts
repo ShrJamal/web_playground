@@ -1,3 +1,4 @@
+import { nitro } from "nitro/vite"
 import { defineConfig } from "vite-plus"
 
 export default defineConfig({
@@ -9,16 +10,21 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  plugins: [
+    nitro({
+      serverEntry: "server.ts",
+    }),
+  ],
   lint: {
     options: { typeAware: true, typeCheck: true },
-    plugins: ["react", "import", "node", "vitest", "oxc"],
+    plugins: ["import", "node", "vitest", "oxc"],
     env: {
       builtin: true,
     },
     rules: {
       "no-unused-vars": ["warn"],
     },
-    ignorePatterns: ["**/*.d.ts", "**/*.gen.ts", "**/*.js", ".design-sync/**"],
+    ignorePatterns: ["**/*.d.ts", "**/*.gen.ts", "**/*.js"],
   },
   fmt: {
     useTabs: false,
@@ -41,7 +47,7 @@ export default defineConfig({
     sortTailwindcss: {
       functions: ["clsx", "cn"],
     },
-    ignorePatterns: ["**/*.d.ts", "**/*.gen.ts", "**/*.js", ".design-sync/**"],
+    ignorePatterns: ["**/*.d.ts", "**/*.gen.ts", "**/*.js"],
   },
   staged: {
     "*.{ts,tsx,html,css}": "vp check --fix",
