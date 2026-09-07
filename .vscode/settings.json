@@ -1,3 +1,5 @@
 {
-  "editor.defaultFormatter": "oxc.oxc-vscode"
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "oxc.path.oxfmt": "./node_modules/vite-plus/bin/oxfmt",
+  "oxc.path.oxlint": "./node_modules/vite-plus/bin/oxlint"
 }

@@ -24,7 +24,7 @@
     "useUnknownInCatchVariables": true,
     "noUnusedLocals": true,
 
-    "types": ["vite-plus/client"],
+    "types": ["bun"],
     "paths": {
       "@/*": ["./src/*"]
     }

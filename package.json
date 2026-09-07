@@ -3,16 +3,15 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vp dev",
-    "build": "tsc && vp build",
-    "preview": "vp preview",
+    "dev": "bun --watch src/server.ts",
+    "build": "tsc && bun build src/server.ts",
     "check": "vp check",
     "check:fix": "vp check --fix",
     "prepare": "vp config"
   },
   "dependencies": {},
   "devDependencies": {
-    "nitro": "3.0.260903-beta",
+    "@types/bun": "1.4.1",
     "typescript": "7.0.2",
     "vite": "npm:@voidzero-dev/vite-plus-core@0.3.0",
     "vite-plus": "0.3.0"

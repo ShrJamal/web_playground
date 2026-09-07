@@ -1,20 +1,6 @@
-import { nitro } from "nitro/vite"
 import { defineConfig } from "vite-plus"
 
 export default defineConfig({
-  root: "./src",
-  publicDir: "../public",
-  server: {
-    port: 3000,
-  },
-  resolve: {
-    tsconfigPaths: true,
-  },
-  plugins: [
-    nitro({
-      serverEntry: "server.ts",
-    }),
-  ],
   lint: {
     options: { typeAware: true, typeCheck: true },
     plugins: ["import", "node", "vitest", "oxc"],
