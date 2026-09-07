@@ -78,7 +78,19 @@ await client.callTool("roll_for_me") // answers the server's question and retrie
 [`src/mcp/server.ts`](src/mcp/server.ts) is the dice server: three tools (one doing a multi
 round-trip request, one reporting progress), two resources (one templated) and one prompt.
 
-Drive it by hand — every request carries `_meta`, and the headers mirror the body:
+### See it work
+
+```sh
+bun mcp:walkthrough
+```
+
+[`src/mcp/walkthrough.ts`](src/mcp/walkthrough.ts) starts its own server and walks one
+client through the whole protocol — no handshake, the `_meta` envelope, mirrored headers,
+a tool call, a tool _failure_, the two-request MRTR round trip, resources, prompts, and a
+version mismatch. Every request and response is printed as it goes on the wire, with a
+note on what just happened and why.
+
+Or drive it by hand — every request carries `_meta`, and the headers mirror the body:
 
 ```sh
 curl -sS http://127.0.0.1:3001/mcp \
