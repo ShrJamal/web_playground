@@ -1,16 +1,16 @@
 .DS_Store
 .git
 node_modules/
+.pnp/
+.pnp.js/
+*.pem
+
+# build
+build/
+package/
 dist/
-dev-dist/
-.cache/
-.output/
-.astro
-.turbo
-out/
-.vinxi/
-.tanstack
-.nitro
+dist-ssr/
+.wrangler
 
 # typescript
 *.tsbuildinfo
