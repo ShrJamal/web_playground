@@ -1,4 +1,5 @@
 import tailwindcss from "@tailwindcss/vite"
+import solid from "vite-plugin-solid"
 import { defineConfig } from "vite-plus"
 import { playwright } from "vite-plus/test/browser-playwright"
 import { preview } from "vite-plus/test/browser-preview"
@@ -11,23 +12,74 @@ export default defineConfig({
   publicDir: "../public",
   envPrefix: "PUBLIC_",
   cacheDir: process.env.VITE_CACHE_DIR,
+  clearScreen: false,
+  build: {
+    outDir: "../dist",
+    emptyOutDir: true,
+  },
   server: {
     host: "0.0.0.0",
     port: 4173,
     strictPort: true,
     // Explicitly select polling when native filesystem events are unavailable.
-    watch: { usePolling: process.env.CHOKIDAR_USEPOLLING === "true" },
+    watch: {
+      ignored: ["**/src-tauri/**"],
+      usePolling: process.env.CHOKIDAR_USEPOLLING === "true",
+    },
   },
-  plugins: [tailwindcss()],
+  plugins: [solid(), tailwindcss()],
   test: {
+    // Vitest v4 compatibility: preserve mock call history.
+    // Remove after tests no longer rely on calls from setup or earlier tests.
+    // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+    // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
+    clearMocks: false,
+    // Vitest v4 compatibility: keep separate Vite servers for inline projects.
+    // Remove when plugins and config hooks can run once for shared projects.
+    // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+    // https://vitest.dev/guide/migration/#inline-projects-share-the-vite-server-by-default
+    sharedViteServer: false,
     projects: [
-      { test: { name: "simulation", environment: "node", include: ["tests/*.test.ts"] } },
       {
+        // Vitest v4 compatibility: keep this inline project independent of the root config.
+        // Remove to inherit root options, including plugins and setup files.
+        // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+        // https://vitest.dev/guide/migration/#inline-projects-inherit-the-root-config-by-default
+        extends: false,
+        test: {
+          // Vitest v4 compatibility: preserve mock call history.
+          // Remove after tests no longer rely on calls from setup or earlier tests.
+          // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+          // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
+          clearMocks: false,
+          name: "simulation",
+          environment: "node",
+          include: ["tests/*.test.ts"],
+        },
+      },
+      {
+        // Vitest v4 compatibility: keep this inline project independent of the root config.
+        // Remove to inherit root options, including plugins and setup files.
+        // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+        // https://vitest.dev/guide/migration/#inline-projects-inherit-the-root-config-by-default
+        extends: false,
         cacheDir: process.env.VITEST_BROWSER_CACHE_DIR,
         test: {
+          // Vitest v4 compatibility: preserve mock call history.
+          // Remove after tests no longer rely on calls from setup or earlier tests.
+          // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+          // https://vitest.dev/guide/migration/#clearmocks-is-enabled-by-default
+          clearMocks: false,
           name: "browser",
           include: ["tests/browser/*.test.ts"],
           browser: {
+            locators: {
+              // Vitest v4 compatibility: keep partial, case-insensitive locator matching.
+              // Remove after updating locators for full, case-sensitive matches.
+              // https://viteplus.dev/guide/vitest-v5#remove-unneeded-compatibility-settings
+              // https://vitest.dev/guide/migration/#locators-are-strict-by-default
+              exact: false,
+            },
             enabled: true,
             provider: manualBrowser ? manualProvider() : playwright(),
             headless: !manualBrowser,

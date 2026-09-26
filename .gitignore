@@ -37,7 +37,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 deno.lock
-bun.lock
 
 # environment variables
 # .env
@@ -48,3 +47,4 @@ bun.lock
 .drizzle/
 
 .cursorrules
+.vitest/

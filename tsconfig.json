@@ -7,8 +7,7 @@
 
     // JSX
     "jsx": "preserve",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment",
+    "jsxImportSource": "solid-js",
 
     // Core checks
     "strict": true,
@@ -24,7 +23,7 @@
     "useUnknownInCatchVariables": true,
     "noUnusedLocals": true,
 
-    "types": ["bun"],
+    "types": ["bun", "vite/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
