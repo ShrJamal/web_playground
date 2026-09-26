@@ -48,3 +48,4 @@ bun.lock
 .drizzle/
 
 .cursorrules
+.vitest/
