@@ -1,5 +1,4 @@
 .DS_Store
-.git
 node_modules/
 .pnp/
 .pnp.js/
@@ -10,21 +9,13 @@ build/
 package/
 dist/
 dist-ssr/
+.output/
 .wrangler
 
 # typescript
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 
-# vercel
-.vercel
-.next/
-next-env.d.ts
-
-# Cloudflare
-worker-configuration.d.ts
-.mf
-.wrangler
 
 # logs
 npm-debug.log*
@@ -37,7 +28,6 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 deno.lock
-bun.lock
 
 # environment variables
 # .env
@@ -47,7 +37,6 @@ bun.lock
 # DB
 .drizzle/
 
-.cursorrules
 .vitest/
 
 # playwright
