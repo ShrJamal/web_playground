@@ -49,3 +49,8 @@ bun.lock
 
 .cursorrules
 .vitest/
+
+# playwright
+test-results/
+playwright-report/
+blob-report/

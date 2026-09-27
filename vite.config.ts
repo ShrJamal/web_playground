@@ -1,9 +1,7 @@
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite-plus"
 import { playwright } from "vite-plus/test/browser-playwright"
-import { preview } from "vite-plus/test/browser-preview"
 
-const manualBrowser = process.env.VITEST_MANUAL_BROWSER === "true"
 const IGNORE_PATTERNS = ["dist/**", "public/**", "bun.lock"]
 // Vite Plus runs development, production builds, tests, linting, and formatting from this config.
 export default defineConfig({
@@ -18,18 +16,18 @@ export default defineConfig({
   },
   plugins: [tailwindcss()],
   test: {
+    // Test files live in the repo-root tests/ folder, outside the Vite root (./src).
+    passWithNoTests: true,
     projects: [
-      { test: { name: "simulation", environment: "node", include: ["tests/*.test.ts"] } },
+      { test: { name: "unit", environment: "node", include: ["../tests/*.test.ts"] } },
       {
-        cacheDir: process.env.VITEST_BROWSER_CACHE_DIR,
         test: {
           name: "browser",
-          include: ["tests/browser/*.test.ts"],
+          include: ["../tests/browser/*.test.ts"],
           browser: {
             enabled: true,
-            provider: manualBrowser ? manualProvider() : playwright(),
-            headless: !manualBrowser,
-            ui: false,
+            provider: playwright(),
+            headless: true,
             instances: [{ browser: "chromium" }],
           },
         },
@@ -46,7 +44,7 @@ export default defineConfig({
     },
     overrides: [
       {
-        files: ["tests/**/*.ts", "vite.config.ts"],
+        files: ["tests/*.ts", "e2e/**/*.ts", "vite.config.ts", "playwright.config.ts"],
         env: { node: true },
       },
     ],
@@ -66,19 +64,3 @@ export default defineConfig({
     "*.{ts,tsx,html,css}": "vp check --fix",
   },
 })
-
-// Manual runs use an existing browser when a host cannot launch a headless process.
-function manualProvider() {
-  const definition = preview()
-  const factory = definition.providerFactory
-  definition.providerFactory = function create(project) {
-    const provider = factory(project)
-    const open = provider.openPage.bind(provider)
-    provider.openPage = async function openPage(sessionId, url, options) {
-      console.info(`Open the Vitest run: ${url}`)
-      await open(sessionId, url, options)
-    }
-    return provider
-  }
-  return definition
-}
