@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test"
 
-const PORT = 3104
+const PORT = 4173
 const CI = Boolean(process.env.CI)
 
 // End-to-end tests run against a production build served by `vp preview`.

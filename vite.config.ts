@@ -10,20 +10,30 @@ export default defineConfig({
   envPrefix: "PUBLIC_",
   cacheDir: process.env.VITE_CACHE_DIR,
   server: {
-    host: "0.0.0.0",
     port: 3104,
-    // strictPort: true,
+    strictPort: true,
+  },
+  build: {
+    outDir: "../dist",
+    emptyOutDir: true,
   },
   plugins: [tailwindcss()],
   test: {
     // Test files live in the repo-root tests/ folder, outside the Vite root (./src).
     passWithNoTests: true,
     projects: [
-      { test: { name: "unit", environment: "node", include: ["../tests/*.test.ts"] } },
+      {
+        test: {
+          name: "unit",
+          environment: "node",
+          include: ["../tests/**/*.test.ts"],
+          exclude: ["../tests/browser/**"],
+        },
+      },
       {
         test: {
           name: "browser",
-          include: ["../tests/browser/*.test.ts"],
+          include: ["../tests/browser/**/*.test.ts"],
           browser: {
             enabled: true,
             provider: playwright(),
@@ -44,8 +54,12 @@ export default defineConfig({
     },
     overrides: [
       {
-        files: ["tests/*.ts", "e2e/**/*.ts", "vite.config.ts", "playwright.config.ts"],
+        files: ["tests/**/*.ts", "e2e/**/*.ts", "vite.config.ts", "playwright.config.ts"],
         env: { node: true },
+      },
+      {
+        files: ["tests/browser/**/*.ts"],
+        env: { node: false },
       },
     ],
   },

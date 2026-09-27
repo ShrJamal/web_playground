@@ -5,11 +5,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
 
-    // JSX
-    "jsx": "preserve",
-    "jsxFactory": "h",
-    "jsxFragmentFactory": "Fragment",
-
     // Core checks
     "strict": true,
     "noEmit": true,
@@ -24,7 +19,7 @@
     "useUnknownInCatchVariables": true,
     "noUnusedLocals": true,
 
-    "types": ["bun"],
+    "types": ["bun", "vite-plus/client"],
     "paths": {
       "@/*": ["./src/*"]
     }
