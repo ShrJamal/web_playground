@@ -13,10 +13,8 @@ export default defineConfig({
   cacheDir: process.env.VITE_CACHE_DIR,
   server: {
     host: "0.0.0.0",
-    port: 4173,
-    strictPort: true,
-    // Explicitly select polling when native filesystem events are unavailable.
-    watch: { usePolling: process.env.CHOKIDAR_USEPOLLING === "true" },
+    port: 3104,
+    // strictPort: true,
   },
   plugins: [tailwindcss()],
   test: {
@@ -40,10 +38,9 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: IGNORE_PATTERNS,
+    options: { typeAware: true, typeCheck: true },
+    plugins: ["typescript", "import", "promise"],
     rules: { "typescript/no-explicit-any": "error" },
-    categories: {
-      correctness: "error",
-    },
     env: {
       browser: true,
     },

@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vp dev",
-    "start": "vp dev",
-    "build": "tsc --noEmit && vp build",
+    "build": "vp check && vp build",
     "preview": "vp preview",
     "check": "vp check",
     "check:fix": "vp check --fix",
@@ -14,7 +13,6 @@
     "test:watch": "vp test --project simulation",
     "test:browser": "vp test run --project browser",
     "test:all": "vp test run",
-    "typecheck": "tsc --noEmit",
     "preinstall": "vp config"
   },
   "dependencies": {},
